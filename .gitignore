@@ -6,6 +6,9 @@ __pycache__/
 *$py.class
 .idea/
 
+# apps backup
+.~*
+
 # C extensions
 *.so
 
