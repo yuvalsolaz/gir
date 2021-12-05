@@ -13,7 +13,9 @@ def to_wkt(rec):
     if rec is None:
         return None
     try:
-        return shape(GeoJSON(rec)).wkt
+        gj = GeoJSON(rec)
+        list.reverse(gj['coordinates'])
+        return shape(gj).wkt
     except Exception as ex:
         print('error parsing shape ')
     return None
@@ -46,7 +48,7 @@ if __name__ == '__main__':
         tweets_df = pd.concat([tweets_df, load_twitter_file(file)])
 
     print(f'total:{tweets_df.shape} geo tweets downloaded' )
-    tweets_df.to_hdf(r'tweets.h5',key='obama')
+    tweets_df.loc[:,['id','text','wkt']].to_csv(r'./data/twitter/tweets.csv')
 
 
 
