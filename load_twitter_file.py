@@ -13,7 +13,7 @@ def to_wkt(rec):
     if rec is None:
         return None
     try:
-        return shape(GeoJSON(rec).wkt)
+        return shape(GeoJSON(rec)).wkt
     except Exception as ex:
         print('error parsing shape ')
     return None
@@ -26,8 +26,8 @@ def load_twitter_file(file):
             tweet = json.loads(line)
             tweets.append(tweet)
     df = pd.DataFrame(data=tweets)
-    gdf = df[df.coordinates.notnull()].apply(lambda t: to_wkt(t['geo']))
-    return gdf
+    df['wkt'] = df.loc[df.geo.notnull(),'geo'].apply(lambda t: to_wkt(t))
+    return df.loc[df.wkt.notnull()]
 
 
 
@@ -45,9 +45,8 @@ if __name__ == '__main__':
     for file in tqdm(files, unit=' file'):
         tweets_df = pd.concat([tweets_df, load_twitter_file(file)])
 
-    print(f'total:{tweets_df.shape} tweets downloaded' )
+    print(f'total:{tweets_df.shape} geo tweets downloaded' )
     tweets_df.to_hdf(r'tweets.h5',key='obama')
-    tweets_geo_df = tweets_df[tweets_df.coordinates.notnull()]
 
 
 
