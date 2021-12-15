@@ -8,6 +8,9 @@ import pandas as pd
 from tqdm import tqdm
 from geojson import GeoJSON
 from shapely.geometry import shape
+import shapely.wkt as wkt
+
+from visualization import visualize_tweets
 
 def to_wkt(rec):
     if rec is None:
@@ -44,11 +47,18 @@ if __name__ == '__main__':
     # All files ending with .json
     files = glob.glob(os.path.join(twitter_directory, '**/*.bz2'), recursive=True)
     tweets_df = pd.DataFrame()
-    for file in tqdm(files, unit=' file'):
+    for file in tqdm(files[:100], unit=' file'):
         tweets_df = pd.concat([tweets_df, load_twitter_file(file)])
+        # extract x y from wkt
+        tweets_df['lat'] = tweets_df.wkt.apply(lambda t: wkt.loads(t).x)
+        tweets_df['lon'] = tweets_df.wkt.apply(lambda t: wkt.loads(t).y)
+        visualize_tweets(tweets_df,'lat', 'lon')
+
 
     print(f'total:{tweets_df.shape} geo tweets downloaded' )
-    tweets_df.loc[:,['id','text','wkt']].to_csv(r'./data/twitter/tweets.csv')
+    tweets_df.to_csv(r'./data/twitter/tweets.csv')
+    visualize_tweets(tweets_df,'lat', 'lon')
+    pass
 
 
 
