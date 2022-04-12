@@ -1,1 +1,4 @@
 tqdm
+pandas
+geojson
+shapely
