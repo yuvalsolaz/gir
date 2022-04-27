@@ -1,0 +1,1 @@
+cmake -DWITH_GFLAGS=ON -DOPENSSL_INCLUDE_DIR=openssl_include_dir ..
