@@ -7,11 +7,9 @@ import json
 import pandas as pd
 import pydash
 
-i = 0
-# an empty dataframe which will save items information
-# you need to modify the columns in this data frame to save your modified data
-df_record_all = pd.DataFrame(columns=['id', 'type', 'english_label', 'longitude', 'latitude', 'english_desc'])
-
+'''
+    wikidata dump file iterator  
+'''
 def wikidata(filename):
     with bz2.open(filename, mode='rt') as f:
         f.read(2) # skip first two bytes: "{\n"
@@ -21,7 +19,9 @@ def wikidata(filename):
             except json.decoder.JSONDecodeError:
                 continue
 
-
+'''
+    save data to file TODO: save as hdf 
+'''
 def save(df, file):
     print(f'saving to {file}')
     df.to_csv(path_or_buf=file)
@@ -43,23 +43,37 @@ if __name__ == '__main__':
         )
     )
     args = parser.parse_args()
-    df_record_all = pd.DataFrame(columns=['id', 'type', 'english_label', 'longitude', 'latitude', 'english_desc'])
+    # df_record_all = pd.DataFrame(columns=['id', 'type', 'english_label', 'longitude', 'latitude', 'english_desc'])
+    total_records_counter = 0
+    rows = [] # rows collector
+    i = 0 # internal geo data rows index
     for record in wikidata(args.dumpfile):
         # only extract items with geographical coordinates (P625)
+        total_records_counter += 1
         if pydash.has(record, 'claims.P625'):
-            print(f'{i} item {record["id"]}')
-            latitude = pydash.get(record, 'claims.P625[0].mainsnak.datavalue.value.latitude')
-            longitude = pydash.get(record, 'claims.P625[0].mainsnak.datavalue.value.longitude')
-            english_label = pydash.get(record, 'labels.en.value')
-            item_id = pydash.get(record, 'id')
-            item_type = pydash.get(record, 'type')
-            english_desc = pydash.get(record, 'descriptions.en.value')
-            df_record = pd.DataFrame({'id': item_id, 'type': item_type, 'english_label': english_label, 'longitude': longitude, 'latitude': latitude, 'english_desc': english_desc}, index=[i])
-            df_record_all = df_record_all.append(df_record, ignore_index=True)
             i += 1
+            if (i % 100 == 0):
+                print(f'{i} geo items from total {total_records_counter} {i*100.0/total_records_counter} percent')
+
+            rows.append( {
+            'id': i,
+            'item_id': pydash.get(record, 'id'),
+            'item_type': pydash.get(record, 'type'),
+            'latitude': pydash.get(record, 'claims.P625[0].mainsnak.datavalue.value.latitude') ,
+            'longitude': pydash.get(record, 'claims.P625[0].mainsnak.datavalue.value.longitude'),
+            'english_label': pydash.get(record, 'labels.en.value'),
+            'ar_label': pydash.get(record, 'labels.ar.value'),
+            'english_desc': pydash.get(record, 'descriptions.en.value'),
+            'heb_desc': pydash.get(record, 'descriptions.he.value'),
+            'ar_desc': pydash.get(record, 'descriptions.ar.value')
+            })
+
             if (i % 50000 == 0):
-                save(df_record_all, r'data/extracted/all_items.csv')
-    save(df_record_all, r'data/all_items.csv')
+                df_record = pd.DataFrame(rows)
+                save(df_record, r'data/extracted/all_items.csv')
+
+    df_record = pd.DataFrame(rows)
+    save(df_record, r'data/all_items.csv')
     print('All items finished, final CSV exported!')
 
 
