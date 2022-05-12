@@ -1,3 +1,5 @@
+torch
+transformers
 s2geometry
 tqdm
 pandas
