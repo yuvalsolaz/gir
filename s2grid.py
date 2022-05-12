@@ -30,10 +30,14 @@ This is a port of the C++ term_index.cc example for the Python API.
 import s2geometry as s2
 
 def geo2cell(lat, lon, level):
-    p = s2.S2LatLng.FromDegrees(lat,lon)
-    leaf = s2.S2CellId(p)
-    cell = leaf.parent(level)
-    return cell
+    try:
+        p = s2.S2LatLng.FromDegrees(lat, lon)
+        leaf = s2.S2CellId(p)
+        cell = leaf.parent(level)
+        return cell
+    except Exception as ex:
+        print(f'geo2cell exception {ex}')
+        return None
 
 import sys
 if __name__ == '__main__':
