@@ -42,24 +42,29 @@ def label_data(dataset_file):
     dataset = dataset.filter(lambda x: x['latitude'] is not None and x['longitude'] is not None)
     print(f'{dataset.shape[0]} not none samples')
 
+    print('add freeze column with False vales')
+    dataset = dataset.map(lambda x: {'freeze':False})
+
     print(f'go through s2geometry levels in decreasing order starting from level = 0 to level = {max_level}')
     for level in range(0, max_level):
 
-        # for each non freezed sample in the dataset calculate cell-id for current level
+        print('for each sample in the dataset calculate cell-id for current level')
         def get_cell_id(sample):
+            if sample['freeze']:
+                return sample
             res = {'cell_id_level': level}
             cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
             res['cell_id'] = cellid.ToToken() if cellid else None
             return res
 
-        print(f"get cell-id's for level: {level}")
+        print(f"get cell-id's for level: {level} TODO: only for non freeze samples")
         dataset = dataset.map(get_cell_id, batched=False)
 
-        # freeze cell-ids if number of samples is less then class threshold
+        print('re calculates freeze column: True if number of samples is less than min_cell_samples threshold')
         dataset = freeze(dataset, min_cell_samples=min_cell_samples)
-        dataset = dataset.filter(lambda x: not x['freeze'])
-
-    dataset.save_to_disk(dataset_file.replace('.csv', ''))
+    dataset_file = dataset_file.replace('.csv', '')
+    print(f'save dataset to: {dataset_file}')
+    dataset.save_to_disk(dataset_file)
     return dataset
 
 
