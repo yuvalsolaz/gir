@@ -1,7 +1,6 @@
 import datasets
 from s2grid import geo2cell
 
-
 '''
 Geographic labeling flow:
     1. load geo text dataset with text and location ( wiki twitter whatever )
@@ -13,7 +12,25 @@ Geographic labeling flow:
 '''
 
 # parameters:
-max_level = 4 # between 0 to 30
+max_level = 4  # between 0 to 30
+min_cell_samples = 1000
+
+'''
+    freeze cell for all samples with less then minimum cell samples 
+'''
+
+
+def freeze(dataset, min_cell_samples):
+    # calculates value counts for each cell-id
+    dataset.set_format(type='pandas', columns='cell_id')
+    vc = dataset['cell_id'].value_counts()
+    dataset.reset_format()
+
+    def freeze(sample):
+        return {'freeze': vc[sample['cell_id']] < min_cell_samples}
+
+    return dataset.map(freeze)
+
 
 def label_data(dataset_file):
     # load geo text dataset with text and location ( wiki twitter whatever )
@@ -24,23 +41,30 @@ def label_data(dataset_file):
     print('filter out none')
     dataset = dataset.filter(lambda x: x['latitude'] is not None and x['longitude'] is not None)
     print(f'{dataset.shape[0]} not none samples')
+
     print(f'go through s2geometry levels in decreasing order starting from level = 0 to level = {max_level}')
     for level in range(0, max_level):
-        # for each sample in the dataset calculate cell-id for current level
-        def get_cell_id(sample):
-            cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
-            if cellid:
-                return {'cell_id_level':level,'cell_id': cellid.ToToken()}
-            return {'cell_id_level':level,'cell_id': None}
 
-        print('add columns with cell-id and cell-id level')
+        # for each non freezed sample in the dataset calculate cell-id for current level
+        def get_cell_id(sample):
+            res = {'cell_id_level': level}
+            cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
+            res['cell_id'] = cellid.ToToken() if cellid else None
+            return res
+
+        print(f"get cell-id's for level: {level}")
         dataset = dataset.map(get_cell_id, batched=False)
-        # calculates value counts for each cell-id
+
         # freeze cell-ids if number of samples is less then class threshold
-    dataset.save_to_disk(dataset_file.replace('.csv',''))
+        dataset = freeze(dataset, min_cell_samples=min_cell_samples)
+        dataset = dataset.filter(lambda x: not x['freeze'])
+
+    dataset.save_to_disk(dataset_file.replace('.csv', ''))
     return dataset
 
+
 import sys
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print(f'usage: python {sys.argv[0]} <dataset file>')
