@@ -12,8 +12,8 @@ Geographic labeling flow:
 '''
 
 # parameters:
-max_level = 4  # between 0 to 30
-min_cell_samples = 1000
+max_level = 10  # between 0 to 30
+min_cell_samples = 5000
 
 '''
     freeze cell for all samples with less then minimum cell samples 
@@ -31,11 +31,20 @@ def freeze(dataset, min_cell_samples):
 
     return dataset.map(freeze)
 
+def summary(dataset, level):
+    dataset.set_format('pandas')
+    freeze_count = dataset['freeze'].value_counts()
+    level_counts = dataset.loc[dataset['freeze'], 'level'].value_counts()
+    dataset.reset_format()
+    print(f'summary for level {level}:')
+    print(f'freeze counts : {freeze_count}')
+    print(f'freezed samples level counts: {level_counts}')
+    print('TODO: visualize cells on map...')
 
 def label_data(dataset_file):
     # load geo text dataset with text and location ( wiki twitter whatever )
     print(f'loading dataset: {dataset_file}...')
-    dataset = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:1%]')
+    dataset = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:10%]')
     print(f'{dataset.shape[0]} samples loaded')
 
     print('filter out none')
@@ -62,6 +71,8 @@ def label_data(dataset_file):
 
         print('re calculates freeze column: True if number of samples is less than min_cell_samples threshold')
         dataset = freeze(dataset, min_cell_samples=min_cell_samples)
+        summary(dataset=dataset, level=level)
+
     dataset_file = dataset_file.replace('.csv', '')
     print(f'save dataset to: {dataset_file}')
     dataset.save_to_disk(dataset_file)
