@@ -23,30 +23,32 @@ def labels_count(dataset):
 
 def train(dataset_path):
     dataset = datasets.load_from_disk(dataset_path=dataset_path)
-    train_ds, test_ds = dataset.train_test_split(test_size=0.2)
-    non_label_columns = dataset.column_names
+    dataset = dataset.train_test_split(test_size=0.2)
+    train = dataset['train']
+    test = dataset['test']
+    non_label_columns = train.column_names
     non_label_columns.remove(label_field)
     checkpoint = 'roberta-base'
-    num_labels  = labels_count(dataset)
+    num_labels  = labels_count(train)
     tokenizer = AutoTokenizer.from_pretrained(checkpoint)
     model = AutoModelForSequenceClassification.from_pretrained(checkpoint, num_labels=num_labels)
 
-    # TODO : note - labels must be special int (see example vit)
     training_args = TrainingArguments(output_dir='geo_dict')
 
     def tokenize_function(samples):
         return tokenizer(samples["english_desc"], truncation=True)
 
-    tokenized_train_ds = train_ds.map(tokenize_function, batched=True)
-    tokenized_test_ds = test_ds.map(tokenize_function, batched=True)
+    tokenized_train = train.map(tokenize_function, batched=True)
+    tokenized_test = test.map(tokenize_function, batched=True)
 
     # remove all columns except the label:
-    tokenized_train_ds = tokenized_train_ds.remove_columns(non_label_columns)
+    tokenized_train = tokenized_train.remove_columns(non_label_columns)
+    tokenized_test = tokenized_test.remove_columns(non_label_columns)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 
     train_dataloader = DataLoader(
-        tokenized_train_ds, shuffle=True, batch_size=8, collate_fn=data_collator
+        tokenized_train, shuffle=True, batch_size=8, collate_fn=data_collator
     )
 
     for batch in train_dataloader:
@@ -57,8 +59,8 @@ def train(dataset_path):
     trainer = Trainer(
         model,
         training_args,
-        train_dataset=tokenized_train_ds,
-        eval_dataset=tokenized_test_ds,
+        train_dataset=tokenized_train,
+        eval_dataset=tokenized_test,
         data_collator=data_collator
     )
     trainer.train()
