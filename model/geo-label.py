@@ -34,7 +34,7 @@ def freeze(dataset, min_cell_samples):
 def summary(dataset, level):
     dataset.set_format('pandas')
     freeze_count = dataset['freeze'].value_counts()
-    level_counts = dataset[dataset['freeze']]['cell_id_level'].value_counts()
+    level_counts = dataset['cell_id_level'].value_counts()
     dataset.reset_format()
     print(f'summary for level {level} freeze count:')
     print(freeze_count)
