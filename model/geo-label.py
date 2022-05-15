@@ -1,3 +1,4 @@
+import numpy as np
 import datasets
 from s2grid import geo2cell
 
@@ -9,6 +10,12 @@ Geographic labeling flow:
     4. add columns with cell-id and cell-id level  
     5. calculates value counts for each cell-id 
     6. freeze cell-ids if number of samples is less then class threshold
+    
+    TODO: 
+    1. apply only on non freezed samples
+    2. batch mapping  
+    3. integer labels 
+    
 '''
 
 # parameters:
@@ -33,12 +40,15 @@ def freeze(dataset, min_cell_samples):
 
 def summary(dataset, level):
     dataset.set_format('pandas')
-    freeze_count = dataset['freeze'].value_counts()
-    level_counts = dataset['cell_id_level'].value_counts()
+    freeze_counts = dataset['freeze'].value_counts()
+    label_counts = len(dataset['cell_id'].unique())
+    level_counts = dataset['cell_id_level'].value_counts() # sort by level
     dataset.reset_format()
     print(f'summary for level {level} freeze count:')
-    print(freeze_count)
-    print('freezed samples level counts:')
+    print(freeze_counts)
+    print('label counts:')
+    print(label_counts)
+    print('level counts:')
     print(level_counts)
     #  'TODO: visualize cells on map...'
 
@@ -53,7 +63,8 @@ def label_data(dataset_file):
     print(f'{dataset.shape[0]} not none samples')
 
     print('add freeze column with False vales')
-    dataset = dataset.map(lambda x: {'freeze':False})
+    dataset = dataset.add_column('cell_id',np.full(dataset.shape[0], -1, dtype=np.float))
+    dataset = dataset.add_column('freeze', np.full(dataset.shape[0], False))
 
     print(f'go through s2geometry levels in decreasing order starting from level = 0 to level = {max_level}')
     for level in range(0, max_level):
@@ -65,7 +76,7 @@ def label_data(dataset_file):
                         'cell_id_level': sample['cell_id_level']}
             res = {'cell_id_level': level}
             cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
-            res['cell_id'] = cellid.ToToken() if cellid else None
+            res['cell_id'] = np.float(cellid.id()) if cellid else None
             return res
 
         print(f"get cell-id's for level: {level}") # TODO: apply only on non freezed samples
