@@ -34,7 +34,7 @@ def freeze(dataset, min_cell_samples):
 def summary(dataset, level):
     dataset.set_format('pandas')
     freeze_count = dataset['freeze'].value_counts()
-    level_counts = dataset.loc[dataset['freeze'], 'level'].value_counts()
+    level_counts = dataset[dataset['freeze']]['cell_id_level'].value_counts()
     dataset.reset_format()
     print(f'summary for level {level}:')
     print(f'freeze counts : {freeze_count}')
@@ -66,7 +66,7 @@ def label_data(dataset_file):
             res['cell_id'] = cellid.ToToken() if cellid else None
             return res
 
-        print(f"get cell-id's for level: {level} TODO: only for non freeze samples")
+        print(f"get cell-id's for level: {level}")
         dataset = dataset.map(get_cell_id, batched=False)
 
         print('re calculates freeze column: True if number of samples is less than min_cell_samples threshold')
