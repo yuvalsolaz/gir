@@ -11,10 +11,7 @@ Geographic labeling flow:
     5. calculates value counts for each cell-id 
     6. freeze cell-ids if number of samples is less then class threshold
     
-    TODO: 
-    1. apply only on non freezed samples
-    2. batch mapping  
-    3. integer labels 
+    TODO:  batch mapping  
     
 '''
 
@@ -63,11 +60,11 @@ def label_data(dataset_file):
     print(f'{dataset.shape[0]} not none samples')
 
     print('add freeze column with False vales')
-    dataset = dataset.add_column('cell_id',np.full(dataset.shape[0], -1, dtype=np.float))
+    dataset = dataset.add_column('cell_id',np.full(dataset.shape[0], None, dtype=np.float))
     dataset = dataset.add_column('freeze', np.full(dataset.shape[0], False))
 
     print(f'go through s2geometry levels in decreasing order starting from level = 0 to level = {max_level}')
-    for level in range(0, max_level):
+    for level in range(0, max_level+1):
 
         print('for each sample in the dataset calculate cell-id for current level')
         def get_cell_id(sample):
