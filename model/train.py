@@ -7,66 +7,67 @@
     4. train
 
 '''
-import random
 
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import datasets
-from transformers import TrainingArguments
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, TrainingArguments
+from transformers import TrainingArguments, DataCollatorWithPadding, Trainer
 from torch.utils.data import DataLoader
-from transformers import DataCollatorWithPadding, Trainer
+import datasets
 
-# TODO: split in geolabel save to disk
-raw_dataset_train = datasets.load_from_disk('/home/yuvalso/repository/gir/data/all_items')
-raw_dataset_eval = datasets.load_from_disk('/home/yuvalso/repository/gir/data/all_items')
-raw_dataset_test = datasets.load_from_disk('/home/yuvalso/repository/gir/data/all_items')
+label_field = 'cell_id'
 
-checkpoint = 'roberta-base'
-num_labels  = 6 # TODO: calculate # of labels
-tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-model = AutoModelForSequenceClassification.from_pretrained(checkpoint, num_labels=num_labels)
-# TODO : note - labels must be special int (see example vit)
+def labels_count(dataset):
+    dataset.set_format('pandas')
+    labels_count = len(dataset[label_field].unique())
+    dataset.reset_format()
+    return labels_count
 
-training_args = TrainingArguments(output_dir='geo_dict')
+def train(dataset_path):
+    dataset = datasets.load_from_disk(dataset_path=dataset_path)
+    train_ds, test_ds = dataset.train_test_split(test_size=0.2)
+    non_label_columns = dataset.column_names
+    non_label_columns.remove(label_field)
+    checkpoint = 'roberta-base'
+    num_labels  = labels_count(dataset)
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+    model = AutoModelForSequenceClassification.from_pretrained(checkpoint, num_labels=num_labels)
 
-def tokenize_function(samples):
-    # samples['label'] = TODO:
-    return tokenizer(samples["english_desc"], truncation=True)
+    # TODO : note - labels must be special int (see example vit)
+    training_args = TrainingArguments(output_dir='geo_dict')
 
+    def tokenize_function(samples):
+        return tokenizer(samples["english_desc"], truncation=True)
 
-tokenized_datasets_train = raw_dataset_train.map(tokenize_function, batched=True)
-tokenized_datasets_eval = raw_dataset_eval.map(tokenize_function, batched=True)
-tokenized_datasets_test = raw_dataset_test.map(tokenize_function, batched=True)
+    tokenized_train_ds = train_ds.map(tokenize_function, batched=True)
+    tokenized_test_ds = test_ds.map(tokenize_function, batched=True)
 
-
-tokenized_datasets_train = tokenized_datasets_train.remove_columns(["cell_id", "labels"])
-tokenized_datasets_eval = tokenized_datasets_eval.rename_column("cell_id", "labels")
-tokenized_datasets_test = tokenized_datasets_test.rename_column("cell_id", "labels")
-
-tokenized_datasets_train = tokenized_datasets_train.rename_column("cell_id", "labels")
-tokenized_datasets_eval = tokenized_datasets_eval.rename_column("cell_id", "labels")
-tokenized_datasets_test = tokenized_datasets_test.rename_column("cell_id", "labels")
-
-data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+    # remove all columns except the label:
+    tokenized_train_ds = tokenized_train_ds.remove_columns(non_label_columns)
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 
-train_dataloader = DataLoader(
-    tokenized_datasets_train, shuffle=True, batch_size=8, collate_fn=data_collator
-)
+    train_dataloader = DataLoader(
+        tokenized_train_ds, shuffle=True, batch_size=8, collate_fn=data_collator
+    )
 
-for batch in train_dataloader:
-    break
-{k: v.shape for k, v in batch.items()}
+    for batch in train_dataloader:
+        break
+    {k: v.shape for k, v in batch.items()}
+    outputs = model(**batch)
+    print(outputs.loss, outputs.logits.shape)
+    trainer = Trainer(
+        model,
+        training_args,
+        train_dataset=tokenized_train_ds,
+        eval_dataset=tokenized_test_ds,
+        data_collator=data_collator
+    )
+    trainer.train()
 
-outputs = model(**batch)
-print(outputs.loss, outputs.logits.shape)
 
-trainer = Trainer(
-    model,
-    training_args,
-    train_dataset=tokenized_datasets_train,
-    eval_dataset=tokenized_datasets_eval,
-    data_collator=data_collator,
-    tokenizer=tokenizer,
-)
-
-trainer.train()
+import sys
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print(f'usage: python {sys.argv[0]} <dataset path>')
+        exit(1)
+    dataset_path = sys.argv[1]
+    train(dataset_path=dataset_path)
