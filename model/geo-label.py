@@ -36,9 +36,10 @@ def summary(dataset, level):
     freeze_count = dataset['freeze'].value_counts()
     level_counts = dataset[dataset['freeze']]['cell_id_level'].value_counts()
     dataset.reset_format()
-    print(f'summary for level {level}:')
-    print(f'freeze counts : {freeze_count}')
-    print(f'freezed samples level counts: {level_counts}')
+    print(f'summary for level {level} freeze count:')
+    print(freeze_count)
+    print('freezed samples level counts:')
+    print(level_counts)
     print('TODO: visualize cells on map...')
 
 def label_data(dataset_file):
