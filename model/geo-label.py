@@ -13,7 +13,7 @@ Geographic labeling flow:
 
 # parameters:
 max_level = 10  # between 0 to 30
-min_cell_samples = 5000
+min_cell_samples = 1000
 
 '''
     freeze cell for all samples with less then minimum cell samples 
@@ -40,7 +40,7 @@ def summary(dataset, level):
     print(freeze_count)
     print('freezed samples level counts:')
     print(level_counts)
-    print('TODO: visualize cells on map...')
+    #  'TODO: visualize cells on map...'
 
 def label_data(dataset_file):
     # load geo text dataset with text and location ( wiki twitter whatever )
@@ -61,16 +61,17 @@ def label_data(dataset_file):
         print('for each sample in the dataset calculate cell-id for current level')
         def get_cell_id(sample):
             if sample['freeze']:
-                return sample
+                return {'cell_id': sample['cell_id'],
+                        'cell_id_level': sample['cell_id_level']}
             res = {'cell_id_level': level}
             cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
             res['cell_id'] = cellid.ToToken() if cellid else None
             return res
 
-        print(f"get cell-id's for level: {level}")
+        print(f"get cell-id's for level: {level}") # TODO: apply only on non freezed samples
         dataset = dataset.map(get_cell_id, batched=False)
 
-        print('re calculates freeze column: True if number of samples is less than min_cell_samples threshold')
+        print(f're calculates freeze column: True if number of samples is less than {min_cell_samples}')
         dataset = freeze(dataset, min_cell_samples=min_cell_samples)
         summary(dataset=dataset, level=level)
 
