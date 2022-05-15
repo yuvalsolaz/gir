@@ -1,29 +1,41 @@
-import numpy as np
-import datasets
-from s2grid import geo2cell
-
 '''
 Geographic labeling flow:
     1. load geo text dataset with text and location ( wiki twitter whatever )
-    2. go through s2geometry levels in decreasing order starting from level = 0 to level = max-level 
-    3. for each sample in the dataset calculate cell-id for current level 
-    4. add columns with cell-id and cell-id level  
-    5. calculates value counts for each cell-id 
+    2. go through s2geometry levels in decreasing order starting from level = 0 to level = max-level
+    3. for each sample in the dataset calculate cell-id for current level
+    4. add columns with cell-id and cell-id level
+    5. calculates value counts for each cell-id
     6. freeze cell-ids if number of samples is less then class threshold
-    
-    TODO:  batch mapping  
-    
+
+    TODO:  batch mapping
+
 '''
+
+import numpy as np
+import datasets
+import s2geometry as s2
 
 # parameters:
 max_level = 10  # between 0 to 30
 min_cell_samples = 1000
 
 '''
+ mapping geo coordinates to s2geometry cell
+'''
+def geo2cell(lat, lon, level):
+    try:
+        p = s2.S2LatLng.FromDegrees(lat, lon)
+        leaf = s2.S2CellId(p)
+        cell = leaf.parent(level)
+        return cell
+    except Exception as ex:
+        print(f'geo2cell exception {ex}')
+        return None
+
+
+'''
     freeze cell for all samples with less then minimum cell samples 
 '''
-
-
 def freeze(dataset, min_cell_samples):
     # calculates value counts for each cell-id
     dataset.set_format(type='pandas', columns='cell_id')
@@ -35,11 +47,12 @@ def freeze(dataset, min_cell_samples):
 
     return dataset.map(freeze)
 
+
 def summary(dataset, level):
     dataset.set_format('pandas')
     freeze_counts = dataset['freeze'].value_counts()
     label_counts = len(dataset['cell_id'].unique())
-    level_counts = dataset['cell_id_level'].value_counts() # sort by level
+    level_counts = dataset['cell_id_level'].value_counts()  # sort by level
     dataset.reset_format()
     print(f'summary for level {level} freeze count:')
     print(freeze_counts)
@@ -48,6 +61,7 @@ def summary(dataset, level):
     print('level counts:')
     print(level_counts)
     #  'TODO: visualize cells on map...'
+
 
 def label_data(dataset_file):
     # load geo text dataset with text and location ( wiki twitter whatever )
@@ -60,13 +74,14 @@ def label_data(dataset_file):
     print(f'{dataset.shape[0]} not none samples')
 
     print('add freeze column with False vales')
-    dataset = dataset.add_column('cell_id',np.full(dataset.shape[0], None, dtype=np.float))
+    dataset = dataset.add_column('cell_id', np.full(dataset.shape[0], None, dtype=np.float))
     dataset = dataset.add_column('freeze', np.full(dataset.shape[0], False))
 
     print(f'go through s2geometry levels in decreasing order starting from level = 0 to level = {max_level}')
-    for level in range(0, max_level+1):
+    for level in range(0, max_level + 1):
 
         print('for each sample in the dataset calculate cell-id for current level')
+
         def get_cell_id(sample):
             if sample['freeze']:
                 return {'cell_id': sample['cell_id'],
@@ -76,7 +91,7 @@ def label_data(dataset_file):
             res['cell_id'] = np.float(cellid.id()) if cellid else None
             return res
 
-        print(f"get cell-id's for level: {level}") # TODO: apply only on non freezed samples
+        print(f"get cell-id's for level: {level}")  # TODO: apply only on non freezed samples
         dataset = dataset.map(get_cell_id, batched=False)
 
         print(f're calculates freeze column: True if number of samples is less than {min_cell_samples}')
