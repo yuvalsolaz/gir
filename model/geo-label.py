@@ -11,6 +11,7 @@ Geographic labeling flow:
 
 '''
 
+import sys
 import numpy as np
 import datasets
 import s2geometry as s2
@@ -22,6 +23,8 @@ min_cell_samples = 1000
 '''
  mapping geo coordinates to s2geometry cell
 '''
+
+
 def geo2cell(lat, lon, level):
     try:
         p = s2.S2LatLng.FromDegrees(lat, lon)
@@ -36,6 +39,8 @@ def geo2cell(lat, lon, level):
 '''
     freeze cell for all samples with less then minimum cell samples 
 '''
+
+
 def freeze(dataset, min_cell_samples):
     # calculates value counts for each cell-id
     dataset.set_format(type='pandas', columns='cell_id')
@@ -46,6 +51,11 @@ def freeze(dataset, min_cell_samples):
         return {'freeze': vc[sample['cell_id']] < min_cell_samples}
 
     return dataset.map(freeze)
+
+
+'''
+    print dataset aggregation 
+'''
 
 
 def summary(dataset, level):
@@ -98,13 +108,8 @@ def label_data(dataset_file):
         dataset = freeze(dataset, min_cell_samples=min_cell_samples)
         summary(dataset=dataset, level=level)
 
-    dataset_file = dataset_file.replace('.csv', '')
-    print(f'save dataset to: {dataset_file}')
-    dataset.save_to_disk(dataset_file)
     return dataset
 
-
-import sys
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -112,4 +117,14 @@ if __name__ == '__main__':
         exit(1)
     dataset_file = sys.argv[1]
     print(f'labeling: {dataset_file}...')
-    label_data(dataset_file)
+    dataset = label_data(dataset_file)
+
+    # split train test
+    print(f'split dataset train test: {dataset_file}')
+    # split train test
+    dataset = dataset.train_test_split(test_size=0.2)
+
+    # save to disk
+    dataset_file = dataset_file.replace('.csv', '')
+    print(f'save dataset to: {dataset_file}')
+    dataset.save_to_disk(dataset_file)

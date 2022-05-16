@@ -23,7 +23,6 @@ def labels_count(dataset):
 
 def train(dataset_path):
     dataset = datasets.load_from_disk(dataset_path=dataset_path)
-    dataset = dataset.train_test_split(test_size=0.2)
     train = dataset['train']
     test = dataset['test']
     non_label_columns = train.column_names
