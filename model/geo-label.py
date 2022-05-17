@@ -109,7 +109,7 @@ def label_data(dataset_file):
         ds = freeze(ds, min_cell_samples=min_cell_samples)
         summary(dataset=ds, level=level)
 
-    return ds
+    return ds.filter(lambda x: x['cell_id'] is not None)
 
 
 if __name__ == '__main__':
@@ -119,6 +119,7 @@ if __name__ == '__main__':
     dataset_file = sys.argv[1]
     print(f'labeling: {dataset_file}...')
     dataset = label_data(dataset_file)
+    print(f'{dataset.shape[0]} labeled samples')
 
     print(f'split dataset train test: {dataset_file}')
     dataset = dataset.train_test_split(test_size=test_size)

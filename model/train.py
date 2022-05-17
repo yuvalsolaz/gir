@@ -54,9 +54,9 @@ def train(dataset_path):
     tokenized_train = tokenized_train.remove_columns(non_label_columns)
     tokenized_test = tokenized_test.remove_columns(non_label_columns)
 
-    print('mapping labels from float to int : TODO: move to geo label module ')
+    print('mapping labels from float to uint64 : TODO: move to geo label module ')
     max_np_int = np.iinfo(np.uint64).max  # 2**64 - 1 = 18446744073709551615
-    def to_int(sample):
+    def to_uint(sample):
         try:
             cid = np.uint64(sample['cell_id'])
             return {'labels': cid}
@@ -64,18 +64,16 @@ def train(dataset_path):
             return {'labels': None}
 
 
-    tokenized_train = tokenized_train.map(to_int)
-    test = tokenized_train.filter(lambda x: x['labels'] is None)
-    print(f'{test.shape[0]} None samples out of {tokenized_train.shape[0]}')
-    tokenized_test = tokenized_test.rename_column('cell_id', 'labels')
+    tokenized_train = tokenized_train.map(to_uint)
+    tokenized_test = tokenized_test.map(to_uint)
+    # test = tokenized_train.filter(lambda x: x['labels'] is None)
+    # print(f'{test.shape[0]} None samples out of {tokenized_train.shape[0]}')
+    #tokenized_test = tokenized_test.rename_column('cell_id', 'labels')
 
 
     print('training...')
     training_args = TrainingArguments(output_dir='trainer', evaluation_strategy='epoch')
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
-    # train_dataloader = DataLoader(
-    #     tokenized_train, shuffle=True, batch_size=8, collate_fn=data_collator
-    # )
 
     trainer = Trainer(
         model,
