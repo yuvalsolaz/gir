@@ -80,9 +80,9 @@ def label_data(dataset_file):
     ds = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:10%]')
     print(f'{ds.shape[0]} samples loaded')
 
-    print('filter samples without coordinates')
-    ds = ds.filter(lambda x: x['latitude'] is not None and x['longitude'] is not None)
-    print(f'{ds.shape[0]} samples with coordinates')
+    print('filter samples without coordinates or text')
+    ds = ds.filter(lambda x: x['latitude'] is not None and x['longitude'] is not None and x['english_desc'] is not None)
+    print(f'{ds.shape[0]} samples with coordinates and text')
 
     print('add cell id and freeze columns')
     ds = ds.add_column('cell_id', np.full(ds.shape[0], None, dtype=np.float))
