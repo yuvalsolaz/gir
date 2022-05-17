@@ -1,6 +1,21 @@
 import datashader as ds
 import datashader.transfer_functions as tf
 import colorcet
+from datasets import Dataset
+import s2geometry as s2
+
+# visualize cells
+def get_cell_geometries(cell_id):
+
+
+
+def visualize_dataset(dataset:Dataset):
+    cvs = ds.Canvas(plot_width=850, plot_height=500)
+    dataset.set_format('pandas')
+    agg_points = cvs.points(dataset, 'longitude', 'latitude')
+    img = ds.tf.shade(agg_points, cmap=colorcet.fire, how='log')
+    dataset.reset_format()
+    return img
 
 
 def visualize_tweets(df, xcol, ycol):

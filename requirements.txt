@@ -5,3 +5,5 @@ s2geometry
 tqdm
 pandas
 pydash
+datashader
+

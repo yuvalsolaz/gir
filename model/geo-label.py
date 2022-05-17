@@ -19,6 +19,7 @@ import s2geometry as s2
 # parameters:
 max_level = 10  # between 0 to 30
 min_cell_samples = 1000
+test_size = 0.2
 
 '''
  mapping geo coordinates to s2geometry cell
@@ -66,28 +67,28 @@ def summary(dataset, level):
     dataset.reset_format()
     print(f'summary for level {level} freeze count:')
     print(freeze_counts)
-    print('label counts:')
-    print(label_counts)
     print('level counts:')
     print(level_counts)
+    print('labels count:')
+    print(label_counts)
     #  'TODO: visualize cells on map...'
 
 
 def label_data(dataset_file):
     # load geo text dataset with text and location ( wiki twitter whatever )
     print(f'loading dataset: {dataset_file}...')
-    dataset = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:10%]')
-    print(f'{dataset.shape[0]} samples loaded')
+    ds = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:10%]')
+    print(f'{ds.shape[0]} samples loaded')
 
-    print('filter out none')
-    dataset = dataset.filter(lambda x: x['latitude'] is not None and x['longitude'] is not None)
-    print(f'{dataset.shape[0]} not none samples')
+    print('filter samples without coordinates')
+    ds = ds.filter(lambda x: x['latitude'] is not None and x['longitude'] is not None)
+    print(f'{ds.shape[0]} samples with coordinates')
 
-    print('add freeze column with False vales')
-    dataset = dataset.add_column('cell_id', np.full(dataset.shape[0], None, dtype=np.float))
-    dataset = dataset.add_column('freeze', np.full(dataset.shape[0], False))
+    print('add cell id and freeze columns')
+    ds = ds.add_column('cell_id', np.full(ds.shape[0], None, dtype=np.float))
+    ds = ds.add_column('freeze', np.full(ds.shape[0], False))
 
-    print(f'go through s2geometry levels in decreasing order starting from level = 0 to level = {max_level}')
+    print(f'go through s2geometry levels in decreasing order starting from level=0 to level={max_level}')
     for level in range(0, max_level + 1):
 
         print('for each sample in the dataset calculate cell-id for current level')
@@ -101,14 +102,14 @@ def label_data(dataset_file):
             res['cell_id'] = np.float(cellid.id()) if cellid else None
             return res
 
-        print(f"get cell-id's for level: {level}")  # TODO: apply only on non freezed samples
-        dataset = dataset.map(get_cell_id, batched=False)
+        print(f"get cell-id's for level: {level}")  
+        ds = ds.map(get_cell_id, batched=False)
 
         print(f're calculates freeze column: True if number of samples is less than {min_cell_samples}')
-        dataset = freeze(dataset, min_cell_samples=min_cell_samples)
-        summary(dataset=dataset, level=level)
+        ds = freeze(ds, min_cell_samples=min_cell_samples)
+        summary(dataset=ds, level=level)
 
-    return dataset
+    return ds
 
 
 if __name__ == '__main__':
@@ -119,12 +120,10 @@ if __name__ == '__main__':
     print(f'labeling: {dataset_file}...')
     dataset = label_data(dataset_file)
 
-    # split train test
     print(f'split dataset train test: {dataset_file}')
-    # split train test
-    dataset = dataset.train_test_split(test_size=0.2)
+    dataset = dataset.train_test_split(test_size=test_size)
 
     # save to disk
-    dataset_file = dataset_file.replace('.csv', '')
-    print(f'save dataset to: {dataset_file}')
-    dataset.save_to_disk(dataset_file)
+    output_path = dataset_file.replace('.csv', '_labels')
+    print(f'save dataset to: {output_path}')
+    dataset.save_to_disk(output_path)
