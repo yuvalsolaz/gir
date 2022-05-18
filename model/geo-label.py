@@ -63,7 +63,7 @@ def summary(dataset, level):
     dataset.set_format('pandas')
     freeze_counts = dataset['freeze'].value_counts()
     label_counts = len(dataset['cell_id'].unique())
-    level_counts = dataset['cell_id_level'].value_counts()  # sort by level
+    level_counts = dataset['cell_id_level'].value_counts().sort_index(ascending=True)
     dataset.reset_format()
     print(f'summary for level {level} freeze count:')
     print(freeze_counts)
@@ -77,7 +77,7 @@ def summary(dataset, level):
 def label_data(dataset_file):
     # load geo text dataset with text and location ( wiki twitter whatever )
     print(f'loading dataset: {dataset_file}...')
-    ds = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:10%]')
+    ds = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:1%]')
     print(f'{ds.shape[0]} samples loaded')
 
     print('filter samples without coordinates or text')
@@ -85,7 +85,7 @@ def label_data(dataset_file):
     print(f'{ds.shape[0]} samples with coordinates and text')
 
     print('add cell id and freeze columns')
-    ds = ds.add_column('cell_id', np.full(ds.shape[0], None, dtype=np.float))
+    ds = ds.add_column('cell_id', np.full(ds.shape[0], '', dtype=str))
     ds = ds.add_column('freeze', np.full(ds.shape[0], False))
 
     print(f'go through s2geometry levels in decreasing order starting from level=0 to level={max_level}')
@@ -99,17 +99,32 @@ def label_data(dataset_file):
                         'cell_id_level': sample['cell_id_level']}
             res = {'cell_id_level': level}
             cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
-            res['cell_id'] = np.float(cellid.id()) if cellid else None
+            if cellid:
+                res['cell_id'] = cellid.ToToken()
             return res
 
         print(f"get cell-id's for level: {level}")  
         ds = ds.map(get_cell_id, batched=False)
 
-        print(f're calculates freeze column: True if number of samples is less than {min_cell_samples}')
+        print(f'freeze cells with number of samples less than {min_cell_samples}')
         ds = freeze(ds, min_cell_samples=min_cell_samples)
         summary(dataset=ds, level=level)
 
     return ds.filter(lambda x: x['cell_id'] is not None)
+
+def map_labels(ds):
+    print('label mapping...')
+    ds.set_format('pandas')
+    labels = ds['cell_id'].unique()
+    ds.reset_format()
+    ## all_labels = np.array(list(set.union(set(unique_labels(train)), set(unique_labels(test)))))
+    label2id = {k: np.where(labels == k)[0][0] for k in labels}
+    # id2label = {np.where(labels == k)[0][0]: k for k in labels}
+
+    def label_mapping(sample):
+        return {'labels': label2id[sample['cell_id']]}
+
+    return ds.map(label_mapping)
 
 
 if __name__ == '__main__':
@@ -120,6 +135,9 @@ if __name__ == '__main__':
     print(f'labeling: {dataset_file}...')
     dataset = label_data(dataset_file)
     print(f'{dataset.shape[0]} labeled samples')
+
+    print(f'label mapping...')
+    dataset = map_labels(dataset)
 
     print(f'split dataset train test: {dataset_file}')
     dataset = dataset.train_test_split(test_size=test_size)
