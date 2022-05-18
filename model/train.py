@@ -13,6 +13,7 @@ from transformers import TrainingArguments, DataCollatorWithPadding, Trainer
 import datasets
 import numpy as np
 
+
 label_field = 'labels'
 
 def unique_labels(ds):
@@ -35,14 +36,18 @@ def train(dataset_path):
     tokenizer = AutoTokenizer.from_pretrained(checkpoint)
 
     all_labels = np.array(list(set.union(set(unique_labels(train)), set(unique_labels(test)))))
+    label2id = {k: np.where(all_labels == k)[0][0] for k in all_labels}
+    id2label = {np.where(labels == k)[0][0]: k for k in all_labels}
+
+
     print(f'loading model from {checkpoint} with {len(all_labels)} labels')
     model = AutoModelForSequenceClassification.from_pretrained(checkpoint,
-                                                               # id2label=id2label,
-                                                               # label2id=label2id,
+                                                               id2label=id2label,
+                                                               label2id=label2id,
                                                                num_labels=len(all_labels))
 
     def tokenize_function(samples):
-        return tokenizer(samples["english_desc"], padding=True, truncation=True)
+        return tokenizer(f'{samples["english_label"]} {samples["english_desc"]}', padding=True, truncation=True)
 
     print (f'tokenize train...')
     tokenized_train = train.map(tokenize_function, batched=True)
@@ -57,8 +62,13 @@ def train(dataset_path):
     tokenized_test = tokenized_test.remove_columns(non_label_columns)
 
 
-    print('training...')
-    training_args = TrainingArguments(output_dir='trainer', evaluation_strategy='epoch', no_cuda=False)
+    training_args = TrainingArguments(output_dir='trainer',
+                                      report_to=['tensorboard'],
+                                      logging_steps=50,
+                                      save_steps=500,
+                                      save_total_limit=3,
+                                      evaluation_strategy='steps',
+                                      no_cuda=False)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
     trainer = Trainer(
@@ -68,6 +78,9 @@ def train(dataset_path):
         eval_dataset=tokenized_test,
         data_collator=data_collator
     )
+
+    print(f'training...{training_args}')
+
     trainer.train()
 
 

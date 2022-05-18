@@ -77,7 +77,7 @@ def summary(dataset, level):
 def label_data(dataset_file):
     # load geo text dataset with text and location ( wiki twitter whatever )
     print(f'loading dataset: {dataset_file}...')
-    ds = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:1%]')
+    ds = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:10%]')
     print(f'{ds.shape[0]} samples loaded')
 
     print('filter samples without coordinates or text')
@@ -103,7 +103,7 @@ def label_data(dataset_file):
                 res['cell_id'] = cellid.ToToken()
             return res
 
-        print(f"get cell-id's for level: {level}")  
+        print(f"get cell-id's for level: {level}")
         ds = ds.map(get_cell_id, batched=False)
 
         print(f'freeze cells with number of samples less than {min_cell_samples}')
@@ -112,19 +112,20 @@ def label_data(dataset_file):
 
     return ds.filter(lambda x: x['cell_id'] is not None)
 
+
 def map_labels(ds):
     print('label mapping...')
     ds.set_format('pandas')
     labels = ds['cell_id'].unique()
     ds.reset_format()
-    ## all_labels = np.array(list(set.union(set(unique_labels(train)), set(unique_labels(test)))))
     label2id = {k: np.where(labels == k)[0][0] for k in labels}
-    # id2label = {np.where(labels == k)[0][0]: k for k in labels}
 
-    def label_mapping(sample):
+    def token2id(sample):
         return {'labels': label2id[sample['cell_id']]}
 
-    return ds.map(label_mapping)
+    ds = ds.map(token2id)
+
+    return ds
 
 
 if __name__ == '__main__':
