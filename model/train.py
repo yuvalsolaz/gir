@@ -58,30 +58,8 @@ def train(dataset_path):
 
 
     print('training...')
-    training_args = TrainingArguments(output_dir='trainer', evaluation_strategy='epoch', no_cuda=True)
+    training_args = TrainingArguments(output_dir='trainer', evaluation_strategy='epoch', no_cuda=False)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
-
-# try batch
-    #samples = tokenized_train[:8]
-    # samples = {k: v for k, v in samples.items() if k not in ["idx", "sentence1", "sentence2"]}
-    #[len(x) for x in samples["input_ids"]]
-    #samples = samples.remove_columns('cell_id')
-
-    # train_dataloader = DataLoader(
-    #     tokenized_train, shuffle=True, batch_size=8, collate_fn=data_collator
-    # )
-    #batch = data_collator(samples)
-    #{k: v.shape for k, v in batch.items()}
-    #model(batch)
-    from torch.utils.data import DataLoader
-
-    train_dataloader = DataLoader(
-        tokenized_train, shuffle=True, batch_size=8, collate_fn=data_collator
-    )
-    for batch in train_dataloader:
-        break
-    {k: v.shape for k, v in batch.items()}
-# region batch
 
     trainer = Trainer(
         model,
