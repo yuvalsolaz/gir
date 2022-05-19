@@ -22,6 +22,10 @@ def unique_labels(ds):
     ds.reset_format()
     return unique_labels
 
+def model_summary(model):
+    model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+    params = sum([np.prod(p.size()) for p in model_parameters])
+    return params
 
 def train(dataset_path):
     print (f'load dataset from: {dataset_path}')
@@ -39,15 +43,19 @@ def train(dataset_path):
     # label2id = {k: np.where(all_labels == k)[0][0] for k in all_labels}
     # id2label = {np.where(all_labels == k)[0][0]: k for k in all_labels}
 
-
     print(f'loading model from {checkpoint} with {len(all_labels)} labels')
     model = AutoModelForSequenceClassification.from_pretrained(checkpoint,
                                                                # id2label=id2label,
                                                                # label2id=label2id,
                                                                num_labels=len(all_labels))
 
+    params = model_summary(model)
+    print(f'model loaded with {params} parameters')
+
     def concat_fields(samples):
-        return {'text': f'{samples["english_label"]} {samples["english_desc"]}'}
+        english_label = samples["english_label"] if samples["english_label"] is not None else ''
+        english_desc = samples["english_desc"] if samples["english_desc"] is not None else ''
+        return {'text': f'{english_label} {english_desc}'}
 
     train = train.map(concat_fields, batched=False)
     test = test.map(concat_fields, batched=False)
@@ -73,7 +81,7 @@ def train(dataset_path):
                                       logging_steps=50,
                                       save_steps=500,
                                       save_total_limit=3,
-                                      evaluation_strategy='steps',
+                                      evaluation_strategy='epoch',
                                       no_cuda=False)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 

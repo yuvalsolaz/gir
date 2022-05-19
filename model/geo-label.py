@@ -18,7 +18,7 @@ import s2geometry as s2
 
 # parameters:
 max_level = 10  # between 0 to 30
-min_cell_samples = 1000
+min_cell_samples = 10000
 test_size = 0.2
 
 '''
