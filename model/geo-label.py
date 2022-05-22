@@ -17,8 +17,8 @@ import datasets
 import s2geometry as s2
 
 # parameters:
-max_level = 10  # between 0 to 30
-min_cell_samples = 10000
+max_level = 2  # between 0 to 30
+min_cell_samples = 50000
 test_size = 0.2
 
 '''

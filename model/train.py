@@ -27,7 +27,7 @@ def model_summary(model):
     params = sum([np.prod(p.size()) for p in model_parameters])
     return params
 
-def train(dataset_path):
+def train(dataset_path, checkpoint):
     print (f'load dataset from: {dataset_path}')
     ds = datasets.load_from_disk(dataset_path=dataset_path)
     train = ds['train']
@@ -35,9 +35,8 @@ def train(dataset_path):
     print(f'{train.shape[0]} train samples')
     print(f'{test.shape[0]} test samples')
 
-    checkpoint = 'roberta-base'
     print(f'loading tokenizer & model from {checkpoint} checkpoint')
-    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+    tokenizer = AutoTokenizer.from_pretrained('roberta-base')
 
     all_labels = np.array(list(set.union(set(unique_labels(train)), set(unique_labels(test)))))
     # label2id = {k: np.where(all_labels == k)[0][0] for k in all_labels}
@@ -57,8 +56,12 @@ def train(dataset_path):
         english_desc = samples["english_desc"] if samples["english_desc"] is not None else ''
         return {'text': f'{english_label} {english_desc}'}
 
-    train = train.map(concat_fields, batched=False)
-    test = test.map(concat_fields, batched=False)
+    # train = train.map(concat_fields, batched=False)
+    # test = test.map(concat_fields, batched=False)
+
+    train = train.map(lambda x: {'text': x["english_desc"] if x["english_desc"] is not None else ''})
+    test  = test.map( lambda x: {'text': x["english_desc"] if x["english_desc"] is not None else ''})
+
 
     def tokenize_function(samples):
         return tokenizer(samples["text"] , padding=True, truncation=True)
@@ -78,10 +81,12 @@ def train(dataset_path):
 
     training_args = TrainingArguments(output_dir='trainer',
                                       report_to=['tensorboard'],
+                                      num_train_epochs=20,
                                       logging_steps=50,
                                       save_steps=500,
                                       save_total_limit=3,
-                                      evaluation_strategy='epoch',
+                                      evaluation_strategy='steps',
+                                      eval_steps=5000,
                                       no_cuda=False)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
@@ -104,4 +109,8 @@ if __name__ == '__main__':
         print(f'usage: python {sys.argv[0]} <dataset path>')
         exit(1)
     dataset_path = sys.argv[1]
-    train(dataset_path=dataset_path)
+    checkpoint = 'roberta-base'
+    if len(sys.argv) > 2:
+        checkpoint = sys.argv[2]
+
+    train(dataset_path=dataset_path, checkpoint=checkpoint)
