@@ -95,7 +95,7 @@ def label_data_level(ds, level):
 def label_data(dataset_file):
     # load geo text dataset with text and location ( wiki twitter whatever )
     print(f'loading dataset: {dataset_file}...')
-    ds = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:10%]')
+    ds = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:2%]')
     print(f'{ds.shape[0]} samples loaded')
 
     print('filter samples without coordinates or text')
@@ -105,7 +105,11 @@ def label_data(dataset_file):
     print('add cell id and freeze columns')
     ds = ds.add_column('cell_id', np.full(ds.shape[0], '', dtype=str))
     ds = ds.add_column('freeze', np.full(ds.shape[0], False))
-
+    print('convert coordinates to web mercator for visualization')
+    try:
+        ds = ds.map(conv2webmercator,batched=False)
+    except Exception as ex:
+        print (f'error mapping conv : {ex}')
     print(f'go through s2geometry levels in decreasing order starting from level=0 to level={max_level}')
     for level in range(0, max_level + 1):
         ds = label_data_level(ds, level)
@@ -128,6 +132,22 @@ def map_labels(ds):
     ds = ds.map(token2id)
 
     return ds
+
+import pyproj
+
+transformer = pyproj.Transformer.from_crs("epsg:4326","epsg:3857")
+
+def conv2webmercator(sample):
+    try:
+        lat = sample['latitude']
+        lon = sample['longitude']
+        x,y = transformer.transform(lat,lon)
+        if x == float('inf') or y == float('inf'):
+            return {'x':None,'y':None}
+        return {'x':x,'y':y}
+    except Exception as ex:
+        print(f'error in conv2webmercator: {ex}')
+        return {'x':None,'y':None}
 
 
 if __name__ == '__main__':
