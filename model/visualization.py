@@ -12,7 +12,7 @@ def get_cell_geometries(cell_id):
 
 def visualize_dataset(dataset:Dataset):
     cvs = ds.Canvas(plot_width=850, plot_height=500)
-    agg_points = cvs.points(source=pd.DataFrame(dataset), x='longitude', y='latitude')
+    agg_points = cvs.points(source=pd.DataFrame(dataset), x='x', y='y')
     img = ds.tf.shade(agg_points, cmap=colorcet.fire, how='log')
     return img
 

@@ -15,6 +15,9 @@ import sys
 import numpy as np
 import datasets
 import s2geometry as s2
+import pyproj
+
+transform = pyproj.Transformer.from_crs("epsg:4326","epsg:3857")
 
 # parameters:
 max_level = 2  # between 0 to 30
@@ -36,11 +39,9 @@ def geo2cell(lat, lon, level):
         print(f'geo2cell exception {ex}')
         return None
 
-
 '''
     freeze cell for all samples with less then minimum cell samples 
 '''
-
 
 def freeze(dataset, min_cell_samples):
     # calculates value counts for each cell-id
@@ -73,7 +74,7 @@ def summary(dataset, level):
     print(label_counts)
 
 
-def label_data_level(ds, level):
+def label_one_level(ds, level):
     print(f'calculate cell-id for each sample in level {level}')
     def get_cell_id(sample):
         if sample['freeze']:
@@ -83,6 +84,11 @@ def label_data_level(ds, level):
         cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
         if cellid:
             res['cell_id'] = cellid.ToToken()
+            cell = s2.S2Cell(cellid)
+            r = cell.GetRectBound()
+            # TODO: convert rectangle coordinates to web mercator
+            x_hi,y_hi = transform r.lat_hi(),r.lon_hi
+            res['rect'] = r
         return res
 
     print(f"get cell-id's for level: {level}")
@@ -112,9 +118,10 @@ def label_data(dataset_file):
         print (f'error mapping conv : {ex}')
     print(f'go through s2geometry levels in decreasing order starting from level=0 to level={max_level}')
     for level in range(0, max_level + 1):
-        ds = label_data_level(ds, level)
+        ds = label_one_level(ds, level)
         if ds:
             summary(dataset=ds, level=level)
+            ds = ds.map(add_cell_rect, batched=False)
 
     return ds.filter(lambda x: x['cell_id'] is not None)
 
@@ -130,10 +137,7 @@ def map_labels(ds):
         return {'labels': label2id[sample['cell_id']]}
 
     ds = ds.map(token2id)
-
     return ds
-
-import pyproj
 
 transformer = pyproj.Transformer.from_crs("epsg:4326","epsg:3857")
 
