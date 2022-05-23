@@ -15,7 +15,7 @@ import sys
 import numpy as np
 import datasets
 import s2geometry as s2
-from visualization import visualize_dataset
+
 # parameters:
 max_level = 2  # between 0 to 30
 min_cell_samples = 50000
@@ -73,6 +73,26 @@ def summary(dataset, level):
     print(label_counts)
 
 
+def label_data_level(ds, level):
+    print(f'calculate cell-id for each sample in level {level}')
+
+    def get_cell_id(sample):
+        if sample['freeze']:
+            return {'cell_id': sample['cell_id'],
+                    'cell_id_level': sample['cell_id_level']}
+        res = {'cell_id_level': level}
+        cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
+        if cellid:
+            res['cell_id'] = cellid.ToToken()
+        return res
+
+    print(f"get cell-id's for level: {level}")
+    ds = ds.map(get_cell_id, batched=False)
+
+    print(f'freeze cells with number of samples less than {min_cell_samples}')
+    ds = freeze(ds, min_cell_samples=min_cell_samples)
+    summary(dataset=ds, level=level)
+
 
 def label_data(dataset_file):
     # load geo text dataset with text and location ( wiki twitter whatever )
@@ -90,27 +110,8 @@ def label_data(dataset_file):
 
     print(f'go through s2geometry levels in decreasing order starting from level=0 to level={max_level}')
     for level in range(0, max_level + 1):
-
-        print('for each sample in the dataset calculate cell-id for current level')
-
-        def get_cell_id(sample):
-            if sample['freeze']:
-                return {'cell_id': sample['cell_id'],
-                        'cell_id_level': sample['cell_id_level']}
-            res = {'cell_id_level': level}
-            cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
-            if cellid:
-                res['cell_id'] = cellid.ToToken()
-            return res
-
-        print(f"get cell-id's for level: {level}")
-        ds = ds.map(get_cell_id, batched=False)
-
-        print(f'freeze cells with number of samples less than {min_cell_samples}')
-        ds = freeze(ds, min_cell_samples=min_cell_samples)
+        label_data_level(ds, level)
         summary(dataset=ds, level=level)
-        # visualize freezed cells on map...
-        img = visualize_dataset(ds.filter(lambda x: x['freeze']) )
 
     return ds.filter(lambda x: x['cell_id'] is not None)
 
