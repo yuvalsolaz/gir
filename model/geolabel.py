@@ -75,7 +75,6 @@ def summary(dataset, level):
 
 def label_data_level(ds, level):
     print(f'calculate cell-id for each sample in level {level}')
-
     def get_cell_id(sample):
         if sample['freeze']:
             return {'cell_id': sample['cell_id'],
@@ -90,8 +89,7 @@ def label_data_level(ds, level):
     ds = ds.map(get_cell_id, batched=False)
 
     print(f'freeze cells with number of samples less than {min_cell_samples}')
-    ds = freeze(ds, min_cell_samples=min_cell_samples)
-    summary(dataset=ds, level=level)
+    return freeze(ds, min_cell_samples=min_cell_samples)
 
 
 def label_data(dataset_file):
@@ -110,8 +108,9 @@ def label_data(dataset_file):
 
     print(f'go through s2geometry levels in decreasing order starting from level=0 to level={max_level}')
     for level in range(0, max_level + 1):
-        label_data_level(ds, level)
-        summary(dataset=ds, level=level)
+        ds = label_data_level(ds, level)
+        if ds:
+            summary(dataset=ds, level=level)
 
     return ds.filter(lambda x: x['cell_id'] is not None)
 
