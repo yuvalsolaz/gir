@@ -74,6 +74,19 @@ def summary(dataset, level):
     print(label_counts)
 
 
+
+def conv2webmercator(sample):
+    try:
+        lat = sample['latitude']
+        lon = sample['longitude']
+        x,y = transform.transform(lat,lon)
+        if x == float('inf') or y == float('inf'):
+            return {'x':None,'y':None}
+        return {'x':x,'y':y}
+    except Exception as ex:
+        print(f'error in conv2webmercator: {ex}')
+        return {'x':None,'y':None}
+
 def label_one_level(ds, level):
     print(f'calculate cell-id for each sample in level {level}')
     def get_cell_id(sample):
@@ -87,8 +100,9 @@ def label_one_level(ds, level):
             cell = s2.S2Cell(cellid)
             r = cell.GetRectBound()
             # TODO: convert rectangle coordinates to web mercator
-            x_hi,y_hi = transform r.lat_hi(),r.lon_hi
-            res['rect'] = r
+            # x_hi,y_hi = transform.transform(r.lat_hi(),r.lon_hi())
+            # x_low,y_low = transform.transform(r.lat_low(),r.lon_low())
+            # res['rect'] = [x_hi,y_hi,x_low,y_low]
         return res
 
     print(f"get cell-id's for level: {level}")
@@ -121,7 +135,6 @@ def label_data(dataset_file):
         ds = label_one_level(ds, level)
         if ds:
             summary(dataset=ds, level=level)
-            ds = ds.map(add_cell_rect, batched=False)
 
     return ds.filter(lambda x: x['cell_id'] is not None)
 

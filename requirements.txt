@@ -4,6 +4,12 @@ datasets
 s2geometry
 tqdm
 pandas
+
+# for presentations
 pydash
+holoviews
+colorcet
 datashader
+pyproj
+jupyter
 
