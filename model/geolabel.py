@@ -87,6 +87,18 @@ def conv2webmercator(sample):
         print(f'error in conv2webmercator: {ex}')
         return {'x':None,'y':None}
 
+def get_cell_rectangle(cell_id):
+    cell = s2.S2Cell(cell_id)
+    r = cell.GetRectBound()
+    # convert rectangle coordinates to web mercator
+    x_hi, y_hi = transform.transform(r.lat_hi().degrees(), r.lng_hi().degrees())
+    x_lo, y_lo = transform.transform(r.lat_lo().degrees(), r.lng_lo().degrees())
+    if x_lo == float('inf') or y_lo == float('inf') or x_hi == float('inf') or y_hi == float('inf'):
+        return None
+    else:
+        return [x_lo, y_hi, x_hi, y_hi, x_hi, y_lo, x_lo, y_lo, x_lo, y_hi]
+
+
 def label_one_level(ds, level):
     print(f'calculate cell-id for each sample in level {level}')
     def get_cell_id(sample):
@@ -97,12 +109,7 @@ def label_one_level(ds, level):
         cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
         if cellid:
             res['cell_id'] = cellid.ToToken()
-            cell = s2.S2Cell(cellid)
-            r = cell.GetRectBound()
-            # TODO: convert rectangle coordinates to web mercator
-            # x_hi,y_hi = transform.transform(r.lat_hi(),r.lon_hi())
-            # x_low,y_low = transform.transform(r.lat_low(),r.lon_low())
-            # res['rect'] = [x_hi,y_hi,x_low,y_low]
+            res['rect'] = get_cell_rectangle(cell_id=cellid)
         return res
 
     print(f"get cell-id's for level: {level}")
