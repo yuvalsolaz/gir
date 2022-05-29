@@ -1,4 +1,5 @@
 # data
+trainer/
 model/trainer/
 ./data/*
 data/
