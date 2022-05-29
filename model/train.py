@@ -81,8 +81,8 @@ def train(dataset_path, checkpoint):
 
     training_args = TrainingArguments(output_dir='trainer',
                                       report_to=['tensorboard'],
-                                      per_device_train_batch_size=16,
-                                      per_device_eval_batch_size=16,
+                                      per_device_train_batch_size=32,
+                                      per_device_eval_batch_size=32,
                                       num_train_epochs=20,
                                       logging_steps=50,
                                       save_steps=500,
