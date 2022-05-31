@@ -2,11 +2,7 @@ import numpy as np
 from transformers import AutoModelForSequenceClassification, TextClassificationPipeline
 from transformers import AutoTokenizer
 
-
-
 def inference():
-
-
 
 import sys
 if __name__ == '__main__':

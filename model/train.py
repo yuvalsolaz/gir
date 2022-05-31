@@ -85,10 +85,11 @@ def train(dataset_path, checkpoint):
                                       per_device_eval_batch_size=32,
                                       num_train_epochs=20,
                                       logging_steps=50,
+                                      load_best_model_at_end=True,
                                       save_steps=500,
                                       save_total_limit=3,
                                       evaluation_strategy='steps',
-                                      eval_steps=5000,
+                                      eval_steps=500,
                                       no_cuda=False)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
     tokenized_train = tokenized_train.shuffle(seed=7)
