@@ -20,7 +20,7 @@ import pyproj
 transform = pyproj.Transformer.from_crs("epsg:4326","epsg:3857")
 
 # parameters:
-max_level = 2  # between 0 to 30
+max_level = 4  # between 0 to 30
 min_cell_samples = 50000
 test_size = 0.2
 
@@ -91,8 +91,11 @@ def get_cell_rectangle(cell_id):
     cell = s2.S2Cell(cell_id)
     r = cell.GetRectBound()
     # convert rectangle coordinates to web mercator
-    x_hi, y_hi = transform.transform(r.lat_hi().degrees(), r.lng_hi().degrees())
-    x_lo, y_lo = transform.transform(r.lat_lo().degrees(), r.lng_lo().degrees())
+    # x_hi, y_hi = transform.transform(r.lat_hi().degrees(), r.lng_hi().degrees())
+    # x_lo, y_lo = transform.transform(r.lat_lo().degrees(), r.lng_lo().degrees())
+    x_hi, y_hi = r.lat_hi().degrees(), r.lng_hi().degrees()
+    x_lo, y_lo = r.lat_lo().degrees(), r.lng_lo().degrees()
+
     if x_lo == float('inf') or y_lo == float('inf') or x_hi == float('inf') or y_hi == float('inf'):
         return None
     else:

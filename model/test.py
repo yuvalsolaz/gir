@@ -32,5 +32,5 @@ if __name__ == '__main__':
 
     print(f'evaluates {df.shape[0]} samples from {samples_file}')
     df['inference'] = df.apply(lambda t : generator(t['input']), axis=1)
-    print(df.head())
+    print(df[['input','inference'].head())
 
