@@ -17,10 +17,10 @@ import datasets
 import s2geometry as s2
 import pyproj
 
-transform = pyproj.Transformer.from_crs("epsg:4326","epsg:3857")
+transform = pyproj.Transformer.from_crs("epsg:4326", "epsg:3857")
 
 # parameters:
-max_level = 4  # between 0 to 30
+max_level = 8  # between 0 to 30
 min_cell_samples = 50000
 test_size = 0.2
 
@@ -39,9 +39,11 @@ def geo2cell(lat, lon, level):
         print(f'geo2cell exception {ex}')
         return None
 
+
 '''
     freeze cell for all samples with less then minimum cell samples 
 '''
+
 
 def freeze(dataset, min_cell_samples):
     # calculates value counts for each cell-id
@@ -74,18 +76,18 @@ def summary(dataset, level):
     print(label_counts)
 
 
-
 def conv2webmercator(sample):
     try:
         lat = sample['latitude']
         lon = sample['longitude']
-        x,y = transform.transform(lat,lon)
+        x, y = transform.transform(lat, lon)
         if x == float('inf') or y == float('inf'):
-            return {'x':None,'y':None}
-        return {'x':x,'y':y}
+            return {'x': None, 'y': None}
+        return {'x': x, 'y': y}
     except Exception as ex:
         print(f'error in conv2webmercator: {ex}')
-        return {'x':None,'y':None}
+        return {'x': None, 'y': None}
+
 
 def get_cell_rectangle(cell_id):
     cell = s2.S2Cell(cell_id)
@@ -104,6 +106,7 @@ def get_cell_rectangle(cell_id):
 
 def label_one_level(ds, level):
     print(f'calculate cell-id for each sample in level {level}')
+
     def get_cell_id(sample):
         if sample['freeze']:
             return {'cell_id': sample['cell_id'],
@@ -112,6 +115,9 @@ def label_one_level(ds, level):
         cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
         if cellid:
             res['cell_id'] = cellid.ToToken()
+            res['face'] = cellid.face()
+            res['level'] = cellid.level()
+            # res['child_positions'] = ''.join([cellid.child_position(l) for l in range(1,level)])
             res['rect'] = get_cell_rectangle(cell_id=cellid)
         return res
 
@@ -122,31 +128,27 @@ def label_one_level(ds, level):
     return freeze(ds, min_cell_samples=min_cell_samples)
 
 
-def label_data(dataset_file):
-    # load geo text dataset with text and location ( wiki twitter whatever )
-    print(f'loading dataset: {dataset_file}...')
-    ds = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:2%]')
-    print(f'{ds.shape[0]} samples loaded')
-
+def label_data(dataset):
     print('filter samples without coordinates or text')
-    ds = ds.filter(lambda x: x['latitude'] is not None and x['longitude'] is not None and x['english_desc'] is not None)
-    print(f'{ds.shape[0]} samples with coordinates and text')
+    dataset = dataset.filter(
+        lambda x: x['latitude'] is not None and x['longitude'] is not None and x['english_desc'] is not None)
+    print(f'{dataset.shape[0]} samples with coordinates and text')
 
     print('add cell id and freeze columns')
-    ds = ds.add_column('cell_id', np.full(ds.shape[0], '', dtype=str))
-    ds = ds.add_column('freeze', np.full(ds.shape[0], False))
+    dataset = dataset.add_column('cell_id', np.full(dataset.shape[0], '', dtype=str))
+    dataset = dataset.add_column('freeze', np.full(dataset.shape[0], False))
     print('convert coordinates to web mercator for visualization')
     try:
-        ds = ds.map(conv2webmercator,batched=False)
+        dataset = dataset.map(conv2webmercator, batched=False)
     except Exception as ex:
-        print (f'error mapping conv : {ex}')
+        print(f'error mapping conv : {ex}')
     print(f'go through s2geometry levels in decreasing order starting from level=0 to level={max_level}')
     for level in range(0, max_level + 1):
-        ds = label_one_level(ds, level)
-        if ds:
-            summary(dataset=ds, level=level)
+        dataset = label_one_level(dataset, level)
+        if dataset:
+            summary(dataset=dataset, level=level)
 
-    return ds.filter(lambda x: x['cell_id'] is not None)
+    return dataset.filter(lambda x: x['cell_id'] is not None)
 
 
 def map_labels(ds):
@@ -162,28 +164,37 @@ def map_labels(ds):
     ds = ds.map(token2id)
     return ds
 
-transformer = pyproj.Transformer.from_crs("epsg:4326","epsg:3857")
+
+transformer = pyproj.Transformer.from_crs("epsg:4326", "epsg:3857")
+
 
 def conv2webmercator(sample):
     try:
         lat = sample['latitude']
         lon = sample['longitude']
-        x,y = transformer.transform(lat,lon)
+        x, y = transformer.transform(lat, lon)
         if x == float('inf') or y == float('inf'):
-            return {'x':None,'y':None}
-        return {'x':x,'y':y}
+            return {'x': None, 'y': None}
+        return {'x': x, 'y': y}
     except Exception as ex:
         print(f'error in conv2webmercator: {ex}')
-        return {'x':None,'y':None}
+        return {'x': None, 'y': None}
 
 
 if __name__ == '__main__':
+
     if len(sys.argv) < 2:
         print(f'usage: python {sys.argv[0]} <dataset file>')
         exit(1)
+
     dataset_file = sys.argv[1]
-    print(f'labeling: {dataset_file}...')
-    dataset = label_data(dataset_file)
+
+    # load geo text dataset with text and location ( wiki twitter whatever )
+    print(f'loading dataset: {dataset_file}...')
+    dataset = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:2%]')
+    print(f'{dataset.shape[0]} samples loaded')
+
+    dataset = label_data(dataset=dataset)
     print(f'{dataset.shape[0]} labeled samples')
 
     print(f'label mapping...')
