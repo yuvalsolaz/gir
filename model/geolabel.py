@@ -113,11 +113,12 @@ def label_one_level(ds, level):
                     'cell_id_level': sample['cell_id_level']}
         res = {'cell_id_level': level}
         cellid = geo2cell(lat=sample['latitude'], lon=sample['longitude'], level=level)
+        # TODO: res['child_positions'] = ''.join([cellid.child_position(l) for l in range(1,level)])
+        #       child_position not implemented in python
         if cellid:
             res['cell_id'] = cellid.ToToken()
             res['face'] = cellid.face()
-            res['level'] = cellid.level()
-            # res['child_positions'] = ''.join([cellid.child_position(l) for l in range(1,level)])
+            res['position_sequence'] = str(cellid)[2:]
             res['rect'] = get_cell_rectangle(cell_id=cellid)
         return res
 
