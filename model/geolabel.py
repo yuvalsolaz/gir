@@ -20,8 +20,9 @@ import pyproj
 transform = pyproj.Transformer.from_crs("epsg:4326", "epsg:3857")
 
 # parameters:
+label_field = 's2_sequence'
 max_level = 8  # between 0 to 30
-min_cell_samples = 50000
+min_cell_samples = 5000
 test_size = 0.2
 
 '''
@@ -65,7 +66,7 @@ def freeze(dataset, min_cell_samples):
 def summary(dataset, level):
     dataset.set_format('pandas')
     freeze_counts = dataset['freeze'].value_counts()
-    label_counts = len(dataset['cell_id'].unique())
+    label_counts = len(dataset[label_field].unique())
     level_counts = dataset['cell_id_level'].value_counts().sort_index(ascending=True)
     dataset.reset_format()
     print(f'summary for level {level} freeze count:')
@@ -118,7 +119,7 @@ def label_one_level(ds, level):
         if cellid:
             res['cell_id'] = cellid.ToToken()
             res['face'] = cellid.face()
-            res['position_sequence'] = str(cellid)[2:]
+            res[label_field] = str(cellid)[2:]
             res['rect'] = get_cell_rectangle(cell_id=cellid)
         return res
 
