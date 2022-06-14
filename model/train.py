@@ -14,6 +14,7 @@ from transformers import Seq2SeqTrainingArguments, DataCollatorForSeq2Seq, Seq2S
 import datasets
 import numpy as np
 from nltk.tokenize import sent_tokenize
+import rouge_score
 
 from geolabel import label_field
 
@@ -64,7 +65,7 @@ def train(dataset_path, checkpoint):
                 sample[label_field], max_length=max_target_length, truncation=True
             )
 
-        model_inputs['seq2seq_label'] = labels['input_ids']
+        model_inputs['labels'] = labels['input_ids']
         return model_inputs
 
     non_label_columns = train.column_names
@@ -92,13 +93,12 @@ def train(dataset_path, checkpoint):
                                              eval_steps=500,
                                              no_cuda=False)
 
-    data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
-
     tokenized_train = tokenized_train.shuffle(seed=7)
     tokenized_test = tokenized_test.shuffle(seed=5)
 
-    features = [tokenized_train[i] for i in range(2)]
-    data_collator(features)
+    data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
+    # features = [tokenized_train[i] for i in range(2)]
+    # data_collator(features)
 
     def compute_metrics(eval_pred):
         predictions, labels = eval_pred

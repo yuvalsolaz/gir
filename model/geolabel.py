@@ -161,7 +161,7 @@ def map_labels(ds):
     label2id = {k: np.where(labels == k)[0][0] for k in labels}
 
     def token2id(sample):
-        return {'labels': label2id[sample['cell_id']]}
+        return {'id_labels': label2id[sample['cell_id']]}
 
     ds = ds.map(token2id)
     return ds
@@ -199,8 +199,8 @@ if __name__ == '__main__':
     dataset = label_data(dataset=dataset)
     print(f'{dataset.shape[0]} labeled samples')
 
-    print(f'label mapping...')
-    dataset = map_labels(dataset)
+    # print(f'label mapping...')
+    # dataset = map_labels(dataset)
 
     print(f'split dataset train test: {dataset_file}')
     dataset = dataset.train_test_split(test_size=test_size)
