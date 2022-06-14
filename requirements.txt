@@ -4,6 +4,8 @@ datasets
 s2geometry
 tqdm
 pandas
+nltk
+rouge_score
 
 # for presentations
 pydash
@@ -12,4 +14,3 @@ colorcet
 datashader
 pyproj
 jupyter
-

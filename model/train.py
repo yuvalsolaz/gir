@@ -9,11 +9,17 @@
 '''
 
 from transformers import AutoTokenizer
-from transformers import AutoModelForSeq2SeqLM # AutoModelForSequenceClassification
-from transformers import Seq2SeqTrainingArguments, DataCollatorForSeq2Seq, Trainer
+from transformers import AutoModelForSeq2SeqLM  # AutoModelForSequenceClassification
+from transformers import Seq2SeqTrainingArguments, DataCollatorForSeq2Seq, Seq2SeqTrainer
 import datasets
 import numpy as np
+from nltk.tokenize import sent_tokenize
+
 from geolabel import label_field
+
+max_input_length = 512
+max_target_length = 30
+
 
 def unique_labels(ds):
     ds.set_format('pandas')
@@ -22,60 +28,51 @@ def unique_labels(ds):
     ds.reset_format()
     return unique_labels
 
+
 def model_summary(model):
     model_parameters = filter(lambda p: p.requires_grad, model.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     return params
 
+
 def train(dataset_path, checkpoint):
-    print (f'load dataset from: {dataset_path}')
+    print(f'load dataset from: {dataset_path}')
     ds = datasets.load_from_disk(dataset_path=dataset_path)
     train = ds['train']
     test = ds['test']
-    print(f'{train.shape[0]} train samples')
-    print(f'{test.shape[0]} test samples')
+    all_labels = np.array(list(set.union(set(unique_labels(train)), set(unique_labels(test)))))
+    print(f'{train.shape[0]} train samples {test.shape[0]} test samples with {len(all_labels)} unique labels')
 
-    print(f'loading tokenizer & model from {checkpoint} checkpoint')
+    print(f'loading tokenizer from t5-small checkpoint')
     tokenizer = AutoTokenizer.from_pretrained('t5-small')
 
-    all_labels = np.array(list(set.union(set(unique_labels(train)), set(unique_labels(test)))))
-    print(f'total {len(all_labels)} unique labels')
-    # label2id = {k: np.where(all_labels == k)[0][0] for k in all_labels}
-    # id2label = {np.where(all_labels == k)[0][0]: k for k in all_labels}
-
-    print(f'loading model from {checkpoint} with {len(all_labels)} labels')
+    print(f'loading model from {checkpoint}')
     model = AutoModelForSeq2SeqLM.from_pretrained(pretrained_model_name_or_path=checkpoint)
-                                                               # id2label=id2label,
-                                                               # label2id=label2id,
-                                                               # num_labels=len(all_labels))
-
     params = model_summary(model)
     print(f'model loaded with {params} parameters')
 
-    def concat_fields(samples):
-        english_label = samples["english_label"] if samples["english_label"] is not None else ''
-        english_desc = samples["english_desc"] if samples["english_desc"] is not None else ''
-        return {'text': f'{english_label} {english_desc}'}
+    print(f'tokenize input and labels on train')
+    # train = train.map(lambda x: {'text': x["english_desc"] if x["english_desc"] is not None else ''})
+    # test = test.map(lambda x: {'text': x["english_desc"] if x["english_desc"] is not None else ''})
+    def preprocess_function(sample):
+        model_inputs = tokenizer(
+            sample['english_desc'], max_length=max_input_length, truncation=True
+        )
+        # Set up the tokenizer for targets
+        with tokenizer.as_target_tokenizer():
+            labels = tokenizer(
+                sample[label_field], max_length=max_target_length, truncation=True
+            )
 
-    # train = train.map(concat_fields, batched=False)
-    # test = test.map(concat_fields, batched=False)
-
-    train = train.map(lambda x: {'text': x["english_desc"] if x["english_desc"] is not None else ''})
-    test  = test.map( lambda x: {'text': x["english_desc"] if x["english_desc"] is not None else ''})
-
-
-    def tokenize_function(samples):
-        return tokenizer(samples["text"] , padding=True, truncation=True)
-
-    print (f'tokenize train...')
-    tokenized_train = train.map(tokenize_function, batched=True)
-
-    print(f'tokenize test...')
-    tokenized_test = test.map(tokenize_function, batched=True)
+        model_inputs['seq2seq_label'] = labels['input_ids']
+        return model_inputs
 
     non_label_columns = train.column_names
-    non_label_columns.remove(label_field)
-    print(f'remove all columns except the label: {non_label_columns}')
+    tokenized_train = train.map(preprocess_function, batched=True)
+    print(f'tokenize input and labels on test')
+    tokenized_test = test.map(preprocess_function, batched=True)
+
+    print(f'remove all columns except input_ids labels and mask:\n {non_label_columns}')
     tokenized_train = tokenized_train.remove_columns(non_label_columns)
     tokenized_test = tokenized_test.remove_columns(non_label_columns)
 
@@ -100,12 +97,36 @@ def train(dataset_path, checkpoint):
     tokenized_train = tokenized_train.shuffle(seed=7)
     tokenized_test = tokenized_test.shuffle(seed=5)
 
-    trainer = Trainer(
+    features = [tokenized_train[i] for i in range(2)]
+    data_collator(features)
+
+    def compute_metrics(eval_pred):
+        predictions, labels = eval_pred
+        # Decode generated summaries into text
+        decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+        # Replace -100 in the labels as we can't decode them
+        labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+        # Decode reference summaries into text
+        decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+        # ROUGE expects a newline after each sentence
+        decoded_preds = ["\n".join(sent_tokenize(pred.strip())) for pred in decoded_preds]
+        decoded_labels = ["\n".join(sent_tokenize(label.strip())) for label in decoded_labels]
+        # Compute ROUGE scores
+        result = rouge_score.compute(
+            predictions=decoded_preds, references=decoded_labels, use_stemmer=True
+        )
+        # Extract the median scores
+        result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+        return {k: round(v, 4) for k, v in result.items()}
+
+    trainer = Seq2SeqTrainer(
         model,
         training_args,
         train_dataset=tokenized_train,
         eval_dataset=tokenized_test,
-        data_collator=data_collator
+        data_collator=data_collator,
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics
     )
 
     print(f'training...{training_args}')
@@ -114,6 +135,7 @@ def train(dataset_path, checkpoint):
 
 
 import sys
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print(f'usage: python {sys.argv[0]} <dataset path>')
