@@ -14,7 +14,9 @@ from transformers import Seq2SeqTrainingArguments, DataCollatorForSeq2Seq, Seq2S
 import datasets
 import numpy as np
 from nltk.tokenize import sent_tokenize
-import rouge_score
+
+from datasets import load_metric
+rouge_score = load_metric("rouge")
 
 from geolabel import label_field
 
