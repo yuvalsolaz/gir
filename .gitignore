@@ -1,6 +1,9 @@
 # data
 trainer/
 model/trainer/
+seq2seq/
+model/seq2seq/
+
 ./data/*
 data/
 # Byte-compiled / optimized / DLL files
