@@ -152,19 +152,19 @@ def label_data(dataset):
 
     return dataset.filter(lambda x: x['cell_id'] is not None)
 
-
-def map_labels(ds):
-    print('label mapping...')
-    ds.set_format('pandas')
-    labels = ds['cell_id'].unique()
-    ds.reset_format()
-    label2id = {k: np.where(labels == k)[0][0] for k in labels}
-
-    def token2id(sample):
-        return {'id_labels': label2id[sample['cell_id']]}
-
-    ds = ds.map(token2id)
-    return ds
+#
+# def map_labels(ds):
+#     print('label mapping...')
+#     ds.set_format('pandas')
+#     labels = ds['cell_id'].unique()
+#     ds.reset_format()
+#     label2id = {k: np.where(labels == k)[0][0] for k in labels}
+#
+#     def token2id(sample):
+#         return {'id_labels': label2id[sample['cell_id']]}
+#
+#     ds = ds.map(token2id)
+#     return ds
 
 
 transformer = pyproj.Transformer.from_crs("epsg:4326", "epsg:3857")
