@@ -9,7 +9,7 @@
 '''
 
 from transformers import AutoTokenizer
-from transformers import AutoModelForSeq2SeqLM  # AutoModelForSequenceClassification
+from transformers import AutoModelForSeq2SeqLM
 from transformers import Seq2SeqTrainingArguments, DataCollatorForSeq2Seq, Seq2SeqTrainer
 import datasets
 import numpy as np
