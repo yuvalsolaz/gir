@@ -119,7 +119,7 @@ def label_one_level(ds, level):
         if cellid:
             res['cell_id'] = cellid.ToToken()
             res['face'] = cellid.face()
-            res[label_field] = str(cellid)[2:]
+            res[label_field] = f'{str(cellid)[0]}{str(cellid)[2:]}'
             res['rect'] = get_cell_rectangle(cell_id=cellid)
         return res
 
