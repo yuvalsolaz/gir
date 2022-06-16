@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     # load geo text dataset with text and location ( wiki twitter whatever )
     print(f'loading dataset: {dataset_file}...')
-    dataset = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:10%]')
+    dataset = datasets.load_dataset("csv", data_files={"train": dataset_file}) #, split='train[:10%]')
     print(f'{dataset.shape[0]} samples loaded')
 
     dataset = label_data(dataset=dataset)

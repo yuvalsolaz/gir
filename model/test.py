@@ -28,10 +28,16 @@ if __name__ == '__main__':
         print(df.head())
         exit()
 
+
     def inference(sentence):
         input_ids = tokenizer(sentence, return_tensors="pt").input_ids
-        outputs = model.generate(input_ids, max_length=10,num_beams=10, length_penalty=0.0,output_scores=True)
+        outputs = model.generate(input_ids,
+                                 max_length=10,
+                                 num_beams=10,
+                                 length_penalty=0.0,
+                                 output_scores=True)
         return tokenizer.batch_decode(outputs, skip_special_tokens=True)
+
 
     print(f'evaluates {df.shape[0]} samples from {samples_file}')
 
@@ -43,8 +49,7 @@ if __name__ == '__main__':
 
     out_df = pd.DataFrame(rows)
 
-    print(out_df[['input','inference']].head())
+    print(out_df[['input', 'inference']].head())
     output_file = samples_file.replace('.csv', '_infer.csv')
     print(f'save inference results to {output_file}')
     out_df.to_csv(output_file)
-
