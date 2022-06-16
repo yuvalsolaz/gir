@@ -143,7 +143,7 @@ if __name__ == '__main__':
         print(f'usage: python {sys.argv[0]} <dataset path>')
         exit(1)
     dataset_path = sys.argv[1]
-    checkpoint = 'roberta-base'
+    checkpoint = 't5-small'
     if len(sys.argv) > 2:
         checkpoint = sys.argv[2]
 
