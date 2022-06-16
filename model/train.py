@@ -16,6 +16,7 @@ import numpy as np
 from nltk.tokenize import sent_tokenize
 
 from datasets import load_metric
+import s2geometry as s2
 rouge_score = load_metric("rouge")
 
 from geolabel import label_field
@@ -102,7 +103,7 @@ def train(dataset_path, checkpoint):
     # features = [tokenized_train[i] for i in range(2)]
     # data_collator(features)
 
-    def compute_metrics(eval_pred):
+    def compute_rouge_metrics(eval_pred):
         predictions, labels = eval_pred
         # Decode generated summaries into text
         decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
@@ -121,6 +122,29 @@ def train(dataset_path, checkpoint):
         result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
         return {k: round(v, 4) for k, v in result.items()}
 
+    def compute_geo_metrics(eval_pred):
+        predictions, labels = eval_pred
+        # Decode generated summaries into text
+        decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+        # Replace -100 in the labels as we can't decode them
+        labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+        # Decode reference summaries into text
+        decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+        # ROUGE expects a newline after each sentence
+        decoded_preds = ["\n".join(sent_tokenize(pred.strip())) for pred in decoded_preds]
+        decoded_labels = ["\n".join(sent_tokenize(label.strip())) for label in decoded_labels]
+
+        # TODO: Compute avg geo distance between predicted cell and labeled cell as scores
+        geo_distance = 0
+        for idx , pred in enumerate(decoded_preds):
+            label = decoded_labels[idx]
+            geo_distance += s2.S2Cell(pred).GetDistance(s2.S2Cell(label))
+
+        # Extract the median scores
+        # result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+        return {k: round(v, 4) for k, v in result.items()}
+
+
     trainer = Seq2SeqTrainer(
         model,
         training_args,
@@ -128,7 +152,7 @@ def train(dataset_path, checkpoint):
         eval_dataset=tokenized_test,
         data_collator=data_collator,
         tokenizer=tokenizer,
-        compute_metrics=compute_metrics
+        compute_metrics=compute_geo_metrics
     )
 
     print(f'training...{training_args}')

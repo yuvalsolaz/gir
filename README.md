@@ -10,7 +10,7 @@ TODO:
 4. train on tweeter data
 5. train on wiki all items 
 6. beam search for output sequence 
-7. metric: - hierarchy classification or numeric diff (right pad with zero)  
+7. metric: - hierarchy classification or numeric diff (right pad with zero) or geographic distance  
 8. replace t5-small to base/large pretrained model after tunings
 9. load gt labels as strings
 
