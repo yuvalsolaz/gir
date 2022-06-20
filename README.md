@@ -17,3 +17,6 @@ TODO:
 length_penalty (float, optional, defaults to 1.0) — Exponential penalty to the length. 1.0 means that the beam score is penalized by the sequence length. 0.0 means no penalty. Set to values < 0.0 in order to encourage the model to generate longer sequences, to a value > 0.0 in order to encourage the model to produce shorter sequences.
 
 ,return_dict_in_generate=True
+
+    
+    

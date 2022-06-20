@@ -93,7 +93,7 @@ def train(dataset_path, checkpoint):
                                              save_steps=500,
                                              save_total_limit=3,
                                              evaluation_strategy='steps',
-                                             eval_steps=500,
+                                             eval_steps=5000,
                                              no_cuda=False)
 
     tokenized_train = tokenized_train.shuffle(seed=7)
@@ -122,6 +122,16 @@ def train(dataset_path, checkpoint):
         result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
         return {k: round(v, 4) for k, v in result.items()}
 
+    # def iou_score(predictions, references):
+    #     score = 1.0
+    #     oops = False
+    #     for idx, c in erumerate(label):
+    #         if oops:
+    #             score /= 4.0  # TODO : log
+    #         if c != pred[idx]
+    #             oops = True
+    #     return score
+
     def compute_geo_metrics(eval_pred):
         predictions, labels = eval_pred
         # Decode generated summaries into text
@@ -130,16 +140,9 @@ def train(dataset_path, checkpoint):
         labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
         # Decode reference summaries into text
         decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
-        # ROUGE expects a newline after each sentence
-        decoded_preds = ["\n".join(sent_tokenize(pred.strip())) for pred in decoded_preds]
-        decoded_labels = ["\n".join(sent_tokenize(label.strip())) for label in decoded_labels]
 
-        # TODO: Compute avg geo distance between predicted cell and labeled cell as scores
-        geo_distance = 0
-        for idx , pred in enumerate(decoded_preds):
-            label = decoded_labels[idx]
-            geo_distance += s2.S2Cell(pred).GetDistance(s2.S2Cell(label))
-
+        # TODO: Compute avg IOU between predicted cell and labeled cell as scores
+        result = None # iou_score(predictions=decoded_preds, references=decoded_labels)
         # Extract the median scores
         # result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
         return {k: round(v, 4) for k, v in result.items()}
@@ -152,7 +155,7 @@ def train(dataset_path, checkpoint):
         eval_dataset=tokenized_test,
         data_collator=data_collator,
         tokenizer=tokenizer,
-        compute_metrics=compute_geo_metrics
+        compute_metrics=compute_rouge_metrics
     )
 
     print(f'training...{training_args}')
