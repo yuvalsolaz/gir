@@ -90,7 +90,7 @@ def train(dataset_path, checkpoint):
                                              predict_with_generate=True,
                                              logging_steps=50,
                                              load_best_model_at_end=True,
-                                             save_steps=500,
+                                             save_steps=5000,
                                              save_total_limit=3,
                                              evaluation_strategy='steps',
                                              eval_steps=5000,
