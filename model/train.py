@@ -47,8 +47,8 @@ def train(dataset_path, checkpoint):
     all_labels = np.array(list(set.union(set(unique_labels(train)), set(unique_labels(test)))))
     print(f'{train.shape[0]} train samples {test.shape[0]} test samples with {len(all_labels)} unique labels')
 
-    print(f'loading tokenizer from t5-small checkpoint')
-    tokenizer = AutoTokenizer.from_pretrained('t5-small')
+    print(f'loading tokenizer from t5-base checkpoint')
+    tokenizer = AutoTokenizer.from_pretrained('t5-base')
 
     print(f'loading model from {checkpoint}')
     model = AutoModelForSeq2SeqLM.from_pretrained(pretrained_model_name_or_path=checkpoint)
@@ -82,18 +82,18 @@ def train(dataset_path, checkpoint):
 
     training_args = Seq2SeqTrainingArguments(output_dir='seq2seq',
                                              report_to=['tensorboard'],
-                                             learning_rate=5.6e-5,
-                                             per_device_train_batch_size=32,
-                                             per_device_eval_batch_size=32,
+                                             learning_rate=1.5e-5,
+                                             per_device_train_batch_size=12,
+                                             per_device_eval_batch_size=12,
                                              weight_decay=0.01,
                                              num_train_epochs=20,
                                              predict_with_generate=True,
                                              logging_steps=50,
                                              load_best_model_at_end=True,
-                                             save_steps=5000,
+                                             save_steps=50000,
                                              save_total_limit=3,
                                              evaluation_strategy='steps',
-                                             eval_steps=5000,
+                                             eval_steps=50000,
                                              no_cuda=False)
 
     tokenized_train = tokenized_train.shuffle(seed=7)
@@ -170,7 +170,7 @@ if __name__ == '__main__':
         print(f'usage: python {sys.argv[0]} <dataset path>')
         exit(1)
     dataset_path = sys.argv[1]
-    checkpoint = 't5-small'
+    checkpoint = 't5-base'
     if len(sys.argv) > 2:
         checkpoint = sys.argv[2]
 
