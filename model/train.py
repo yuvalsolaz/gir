@@ -43,7 +43,7 @@ def train(dataset_path, checkpoint):
     print(f'load dataset from: {dataset_path}')
     ds = datasets.load_from_disk(dataset_path=dataset_path)
     train = ds['train']
-    test = ds['test']
+    test = ds['test'].select(range(10000))
     all_labels = np.array(list(set.union(set(unique_labels(train)), set(unique_labels(test)))))
     print(f'{train.shape[0]} train samples {test.shape[0]} test samples with {len(all_labels)} unique labels')
 
@@ -86,14 +86,14 @@ def train(dataset_path, checkpoint):
                                              per_device_train_batch_size=12,
                                              per_device_eval_batch_size=12,
                                              weight_decay=0.01,
-                                             num_train_epochs=20,
+                                             num_train_epochs=5,
                                              predict_with_generate=True,
-                                             logging_steps=50,
+                                             logging_steps=200,
                                              load_best_model_at_end=True,
-                                             save_steps=50000,
+                                             save_steps=100000,
                                              save_total_limit=3,
                                              evaluation_strategy='steps',
-                                             eval_steps=50000,
+                                             eval_steps=100000,
                                              no_cuda=False)
 
     tokenized_train = tokenized_train.shuffle(seed=7)
