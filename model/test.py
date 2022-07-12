@@ -19,10 +19,10 @@ if __name__ == '__main__':
 
     print(f'load dataset from: {dataset_path}')
     ds = datasets.load_from_disk(dataset_path=dataset_path)
-    test = ds['test'].select(range(1000))
+    test = ds['train'].select(range(1000))
 
-    print(f'loading tokenizer from t5-small')
-    tokenizer = AutoTokenizer.from_pretrained('t5-small')
+    print(f'loading tokenizer from t5-base')
+    tokenizer = AutoTokenizer.from_pretrained('t5-base')
 
     print(f'loading model from {checkpoint}...')
     model = AutoModelForSeq2SeqLM.from_pretrained(pretrained_model_name_or_path=checkpoint)
@@ -36,7 +36,9 @@ if __name__ == '__main__':
                                  max_length=10,
                                  num_beams=10,
                                  length_penalty=0.0,
-                                 output_scores=True)
+                                 output_scores=True,
+                                 return_dict_in_generate=True
+                                 )
         return tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
 
     print(f'evaluates {test.shape[0]} samples from {dataset_path}')
