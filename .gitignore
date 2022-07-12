@@ -3,6 +3,7 @@ trainer/
 model/trainer/
 seq2seq/
 model/seq2seq/
+model/inference.csv
 
 ./data/*
 data/
