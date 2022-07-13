@@ -20,21 +20,18 @@ Definitions for hierarchical f-measure hF
 '''
 
 def hirarchies_metric(y_true, y_pred):
-
     def intersect(true_seq, pred_seq):
         for i in range(min(len(true_seq),len(pred_seq))):
             if true_seq[i] != pred_seq[i]:
-                break
+                return true_seq[:i]
         return true_seq[:i+1]
 
     x_array = np.array(list(zip(y_true,y_pred)))
-
     hA_seq = [intersect(sample[0], sample[1]) for sample in x_array]
-
     vlen = np.vectorize(len)
-    Ti = vlen(x_array[0])
+    Ti = vlen(np.array(y_true))
     hA = vlen(hA_seq)
-    haccuracy = np.divide(hA, sum(Ti))
+    haccuracy = np.divide(sum(hA), sum(Ti))
     return haccuracy
 
 
@@ -50,7 +47,7 @@ if __name__ == '__main__':
 
     print(f'load dataset from: {dataset_path}')
     ds = datasets.load_from_disk(dataset_path=dataset_path)
-    test = ds['train'].select(range(10))
+    test = ds['train'].select(range(1000))
 
     print(f'loading tokenizer from t5-base')
     tokenizer = AutoTokenizer.from_pretrained('t5-base')
