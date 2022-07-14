@@ -10,13 +10,16 @@ TODO:
 4. train on tweeter data
 5. train on wiki all items 
 6. beam search for output sequence 
-7. metric: - hierarchy classification or numeric diff (right pad with zero) or geographic distance  
-8. replace t5-small to base/large pretrained model after tunings
-9. load gt labels as strings
+7. metrics: hierarchical precision (hP), hierarchical recall (hR) and hierarchical f-measure (hF):
+8. HAPPIER optimization: hierarchical Average Precision training method for Pertinent imagE Retrival
+https://arxiv.org/pdf/2207.04873.pdf
 
-length_penalty (float, optional, defaults to 1.0) — Exponential penalty to the length. 1.0 means that the beam score is penalized by the sequence length. 0.0 means no penalty. Set to values < 0.0 in order to encourage the model to generate longer sequences, to a value > 0.0 in order to encourage the model to produce shorter sequences.
+10. metrics numeric diff (right pad with zero) 
+11. metrics geographic distance or IOU
+12. replace t5-small to base/large pretrained model after tunings
+13. load gt labels as strings
 
 ,return_dict_in_generate=True
 
     
-    
+   
