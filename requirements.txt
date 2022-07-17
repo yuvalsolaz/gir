@@ -9,6 +9,8 @@ rouge_score
 sklearn
 
 # for presentations
+fastapi
+"uvicorn[standard]"
 pydash
 holoviews
 colorcet
