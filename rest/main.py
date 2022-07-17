@@ -2,13 +2,13 @@ from typing import Union, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-Point(BaseModel):
-lat: float = 0.0
-lon: float = 0.0
+class Point(BaseModel):
+    lat: float = 0.0
+    lon: float = 0.0
 
 
 class BBoxDegrees(BaseModel):
-    rect: List[Point]
+    bbox: List[Point]
 
 
 app = FastAPI()
@@ -21,9 +21,18 @@ def read_root():
 
 @app.get("/geocoding/{text}", response_model=BBoxDegrees)
 def geocoding(text: str):
+    # TODO: model inference on text:
+    _bbox = [Point(lat=34.5, lon=31.8),
+            Point(lat=34.6, lon=31.8),
+            Point(lat=34.6, lon=31.7),
+            Point(lat=34.5, lon=31.7),
+            Point(lat=34.5, lon=31.8)]
 
-    # TODO: model inference:
-    bbox = [Point(34.5,31.8), Point(34.6,31.8), Point(34.6,31.7), Point(34.5,31.7),Point(34.5,31.8)]
-    if bbox is None:
+    res = BBoxDegrees(bbox=_bbox)
+
+    if res is None:
         raise HTTPException(status_code=404, detail="geocoding error")
-    return bbox
+
+    print(res)
+
+    return res
