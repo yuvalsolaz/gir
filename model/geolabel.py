@@ -29,7 +29,6 @@ test_size = 0.2
  mapping geo coordinates to s2geometry cell
 '''
 
-
 def geo2cell(lat, lon, level):
     try:
         p = s2.S2LatLng.FromDegrees(lat, lon)
@@ -39,6 +38,15 @@ def geo2cell(lat, lon, level):
     except Exception as ex:
         print(f'geo2cell exception {ex}')
         return None
+
+def cell_id_token2geo(cell_id_token):
+    try:
+        cell_id = s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
+        return get_cell_rectangle(cell_id)
+    except Exception as ex:
+        print(f'cell_id_token2geo exception {ex}')
+        return None
+
 
 
 '''
