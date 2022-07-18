@@ -10,7 +10,7 @@ sklearn
 
 # for presentations
 fastapi
-"uvicorn[standard]"
+uvicorn[standard]
 pydash
 holoviews
 colorcet
