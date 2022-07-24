@@ -1,7 +1,7 @@
 import numpy as np
 from transformers import AutoTokenizer
 from transformers import AutoModelForSeq2SeqLM
-from model.geolabel import cell_id_token2geo
+from model.geolabel import cell2geo
 
 def load_model(checkpoint):
     print(f'loading tokenizer from t5-base')
@@ -26,9 +26,11 @@ def inference(tokenizer, model, sentence):
                              )
     cell_id_token = tokenizer.decode(outputs['sequences'][0], skip_special_tokens=True)
     # TODO score = np.argmax(outputs['scores'])
-    rect = cell_id_token2geo(cell_id_token)
+    rect = cell2geo(cell_id_token)
+    if rect == None:
+        return None
     ##            0   1    2     3     4     5     6     7     8     9
     ## rect = [x_lo, y_hi, x_hi, y_hi, x_hi, y_lo, x_lo, y_lo, x_lo, y_hi]    [31.81, 31.82, 35.52, 35.53])
     # bbox = y_lo,y_hi, x_lo , x_hi
-    bbox = [rect[5], rect[1], rect[0], rect[2]]
+    bbox = [rect[0], rect[2],rect[5], rect[1]]
     return bbox

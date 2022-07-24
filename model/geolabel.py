@@ -16,6 +16,7 @@ import numpy as np
 import datasets
 import s2geometry as s2
 import pyproj
+from tqdm import tqdm
 
 transform = pyproj.Transformer.from_crs("epsg:4326", "epsg:3857")
 
@@ -25,10 +26,27 @@ max_level = 8  # between 0 to 30
 min_cell_samples = 5000
 test_size = 0.2
 
+
+'''
+ mapping geo cell string to cell id
+'''
+def cellid_mapping(max_level=max_level):
+    cellio = {}
+    for level in range(max_level+2):
+        print (f'cellid mapping level: {level}')
+        cc = s2.S2CellId.Begin(level)
+        while cc != cc.End(level):
+            key = str(cc).replace('/','').replace('\x00','')
+            cellio[key] = cc.id()
+            cc = cc.next()
+    return cellio
+
+cellio = cellid_mapping(max_level)
+
+
 '''
  mapping geo coordinates to s2geometry cell
 '''
-
 def geo2cell(lat, lon, level):
     try:
         p = s2.S2LatLng.FromDegrees(lat, lon)
@@ -39,14 +57,31 @@ def geo2cell(lat, lon, level):
         print(f'geo2cell exception {ex}')
         return None
 
-def cell_id_token2geo(cell_id_token):
+def cell2geo(cell_id_token):
     try:
-        cell_id = s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
-        return get_cell_rectangle(cell_id)
+        # cell_id = s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
+        cell = cellio.get(cell_id_token, None)
+        if cell:
+            cellid = s2.S2CellId(cell)
+            return get_cell_rectangle(cellid)
     except Exception as ex:
         print(f'cell_id_token2geo exception {ex}')
-        return None
+    return None
 
+
+def get_cell_rectangle(cell_id):
+    cell = s2.S2Cell(cell_id)
+    r = cell.GetRectBound()
+    # convert rectangle coordinates to web mercator
+    # x_hi, y_hi = transform.transform(r.lat_hi().degrees(), r.lng_hi().degrees())
+    # x_lo, y_lo = transform.transform(r.lat_lo().degrees(), r.lng_lo().degrees())
+    x_hi, y_hi = r.lat_hi().degrees(), r.lng_hi().degrees()
+    x_lo, y_lo = r.lat_lo().degrees(), r.lng_lo().degrees()
+
+    if x_lo == float('inf') or y_lo == float('inf') or x_hi == float('inf') or y_hi == float('inf'):
+        return None
+    else:
+        return [x_lo, y_hi, x_hi, y_hi, x_hi, y_lo, x_lo, y_lo, x_lo, y_hi]
 
 
 '''
@@ -96,21 +131,6 @@ def conv2webmercator(sample):
     except Exception as ex:
         print(f'error in conv2webmercator: {ex}')
         return {'x': None, 'y': None}
-
-
-def get_cell_rectangle(cell_id):
-    cell = s2.S2Cell(cell_id)
-    r = cell.GetRectBound()
-    # convert rectangle coordinates to web mercator
-    # x_hi, y_hi = transform.transform(r.lat_hi().degrees(), r.lng_hi().degrees())
-    # x_lo, y_lo = transform.transform(r.lat_lo().degrees(), r.lng_lo().degrees())
-    x_hi, y_hi = r.lat_hi().degrees(), r.lng_hi().degrees()
-    x_lo, y_lo = r.lat_lo().degrees(), r.lng_lo().degrees()
-
-    if x_lo == float('inf') or y_lo == float('inf') or x_hi == float('inf') or y_hi == float('inf'):
-        return None
-    else:
-        return [x_lo, y_hi, x_hi, y_hi, x_hi, y_lo, x_lo, y_lo, x_lo, y_hi]
 
 
 def label_one_level(ds, level):
@@ -201,7 +221,7 @@ if __name__ == '__main__':
 
     # load geo text dataset with text and location ( wiki twitter whatever )
     print(f'loading dataset: {dataset_file}...')
-    dataset = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:100%]')
+    dataset = datasets.load_dataset("csv", data_files={"train": dataset_file}, split='train[:1%]')
     print(f'{dataset.shape[0]} samples loaded')
 
     dataset = label_data(dataset=dataset)
