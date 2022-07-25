@@ -63,7 +63,9 @@ def cell2geo(cell_id_token):
         cell = cellio.get(cell_id_token, None)
         if cell:
             cellid = s2.S2CellId(cell)
-            return get_cell_rectangle(cellid)
+            area = s2.S2Cell(cellid).ExactArea() * 1e5
+            rect = get_cell_rectangle(cellid)
+            return rect, area
     except Exception as ex:
         print(f'cell_id_token2geo exception {ex}')
     return None
