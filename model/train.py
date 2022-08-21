@@ -81,7 +81,8 @@ def train(dataset_path, checkpoint):
     tokenized_test = tokenized_test.remove_columns(non_label_columns)
 
     training_args = Seq2SeqTrainingArguments(output_dir='seq2seq',
-                                             report_to=['tensorboard'],
+                                             report_to=['wandb'],
+                                             run_name= 'wiki-5000',
                                              learning_rate=1.5e-5,
                                              per_device_train_batch_size=12,
                                              per_device_eval_batch_size=12,
