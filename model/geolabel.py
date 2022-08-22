@@ -64,12 +64,16 @@ def cell2geo(cell_id_token):
         if cell:
             cellid = s2.S2CellId(cell)
             area = s2.S2Cell(cellid).ExactArea() * 1e5
-            rect = get_cell_rectangle(cellid)
-            return rect, area
+            rects = []
+            curr_cell = cellid
+            while curr_cell.level() > 0:
+                rects.append(get_cell_rectangle(curr_cell))
+                curr_cell = curr_cell.parent()
+
+            return rects, area
     except Exception as ex:
         print(f'cell_id_token2geo exception {ex}')
-    return None
-
+    return None, None
 
 def get_cell_rectangle(cell_id):
     cell = s2.S2Cell(cell_id)

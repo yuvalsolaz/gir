@@ -23,6 +23,7 @@ class GeocodeResults(BaseModel):
     display_name: str
     confidance: float
     boundingbox: List[float]
+    levels_bbox: List[List[float]]
 
 checkpoint = r'/home/yuvalso/repository/gir/seq2seq/checkpoint-2100000/'
 tokenizer, model = load_model(checkpoint=checkpoint)
@@ -32,17 +33,23 @@ def geocoding(text: str):
 
     # model inference on text:
     cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text)
-    rect, area = cell2geo(cellid)
-    if not rect:
+    rects, area = cell2geo(cellid)
+    if not rects:
         raise HTTPException(status_code=404, detail=f'inference error for {text}')
     ##            0   1    2     3     4     5     6     7     8     9
     ## rect = [x_lo, y_hi, x_hi, y_hi, x_hi, y_lo, x_lo, y_lo, x_lo, y_hi]    [31.81, 31.82, 35.52, 35.53])
     # bbox = y_lo,y_hi, x_lo , x_hi
-    bbox = [rect[0], rect[2],rect[5], rect[1]]
+    rect = rects[0]
+    bbox = [rect[0], rect[2], rect[5], rect[1]]
+    levels_bbox = []
+    for rect in rects:
+        levels_bbox.append([rect[0], rect[2], rect[5], rect[1]])
+
     print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={score:.2f}\nbbox={bbox}')
     res = GeocodeResults(display_name= text,
                          confidance = score,
-                         boundingbox = bbox)
+                         boundingbox = bbox,
+                         levels_bbox = levels_bbox)
 
     if res is None:
         raise HTTPException(status_code=404, detail="geocoding error")
