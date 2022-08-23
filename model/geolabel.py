@@ -66,7 +66,7 @@ def cell2geo(cell_id_token):
             area = s2.S2Cell(cellid).ExactArea() * 1e5
             rects = []
             curr_cell = cellid
-            while curr_cell.level() > 0:
+            while curr_cell.level() >= 0:
                 rects.append(get_cell_rectangle(curr_cell))
                 curr_cell = curr_cell.parent()
 
