@@ -4,6 +4,7 @@ model/trainer/
 seq2seq/
 model/seq2seq/
 model/inference.csv
+model/wandb/
 
 ./data/*
 data/
