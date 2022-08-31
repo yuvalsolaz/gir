@@ -50,10 +50,6 @@ def geocoding(text: str):
                          confidance = score,
                          boundingbox = bbox,
                          levels_bbox = levels_bbox)
-
-    if res is None:
-        raise HTTPException(status_code=404, detail="geocoding error")
-
     return [res]
 
 
