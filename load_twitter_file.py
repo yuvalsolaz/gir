@@ -18,13 +18,13 @@ import json
 import glob
 import bz2
 import pandas as pd
-from tqdm import tqdm
+import tqdm
 from geojson import GeoJSON
 from shapely.geometry import shape
 import shapely.wkt as wkt
 from zipfile import ZipFile
+import tarfile
 
-from visualization import visualize_tweets
 
 def to_wkt(rec):
     if rec is None:
@@ -49,35 +49,47 @@ def load_twitter_file(file):
     return df.loc[df.wkt.notnull()]
 
 
+# extract zip / tar file in current directory
+def extract(twitter_file):
+    data_dir = os.path.dirname(twitter_file)
+    if twitter_file.endswith('.zip'):
+        with ZipFile(twitter_file) as zfile:
+            zfile.extractall(data_dir)
+    elif twitter_file.endswith('.tar'):
+        print(f'unzip {twitter_file} in {data_dir}')
+        with tarfile.open(twitter_file) as tfile:
+            tfile.extractall(data_dir)
+    else:
+        print (f'non recognized file format: {twitter_file}')
+        return False
+    return True
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print(f'usage: python {sys.argv[0]} <twitter_zip_file>')
         exit(1)
 
-    twitter_zip_file = sys.argv[1]
-    print(f'loading twitter files from {twitter_zip_file}')
+    twitter_file = sys.argv[1]
+    data_dir = os.path.dirname(twitter_file)
+    # extract(twitter_file)
 
-    # extract zip file in current directory
-    data_dir = os.path.dirname(twitter_zip_file)
-    print(f'unzip {twitter_zip_file} in {data_dir}')
-    with ZipFile(twitter_zip_file) as zfile:
-        zfile.extractall(data_dir)
+    print(f'loading twitter files from {data_dir}')
     # extract all json files
     files = glob.glob(os.path.join(data_dir, '**/*.bz2'), recursive=True)
+    print(f'start loading {len(files)} files...')
     tweets_df = pd.DataFrame()
-    for file in tqdm(files, unit=' file'):
+    file_count = 0
+    for file in tqdm.gui.tqdm(files, unit=' file',gui=True):
         tweets_df = pd.concat([tweets_df, load_twitter_file(file)])
         # extract x y from wkt
         tweets_df['lat'] = tweets_df.wkt.apply(lambda t: wkt.loads(t).x)
         tweets_df['lon'] = tweets_df.wkt.apply(lambda t: wkt.loads(t).y)
-        # visualize_tweets(tweets_df,'lat', 'lon')
+        file_count += 1
+        output_file = twitter_file.replace('.tar','.csv').replace('.zip','.csv')
+        print(f'{tweets_df.shape[0]} geo tweets from {file_count} files saving to {output_file}')
+        tweets_df.to_csv(output_file)
 
-
-    print(f'total:{tweets_df.shape} geo tweets downloaded' )
-    tweets_df.to_csv(r'./data/twitter/tweets.csv')
-    visualize_tweets(tweets_df,'lat', 'lon')
-    pass
-
+    print(f'this is the end:\ntotal:{tweets_df.shape} geo tweets downloaded')
 
 
