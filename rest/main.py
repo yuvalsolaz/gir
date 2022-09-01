@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pydantic import BaseModel
 from model.inference import load_model, inference
-from model.geolabel import cell2geo
+from model.geolabel import cell2geo, level2geo
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"],  # Allows all origins
@@ -34,10 +34,11 @@ def geocoding(text: str):
     # model inference on text:
     cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text)
     rects, area = cell2geo(cellid)
+    # rects, area = level2geo(min_level=2,max_level=3)
     if not rects:
         raise HTTPException(status_code=404, detail=f'inference error for {text}')
-    ##            0   1    2     3     4     5     6     7     8     9
-    ## rect = [x_lo, y_hi, x_hi, y_hi, x_hi, y_lo, x_lo, y_lo, x_lo, y_hi]    [31.81, 31.82, 35.52, 35.53])
+    #            0   1    2     3     4     5     6     7     8     9
+    # rect = [x_lo, y_hi, x_hi, y_hi, x_hi, y_lo, x_lo, y_lo, x_lo, y_hi]    [31.81, 31.82, 35.52, 35.53])
     # bbox = y_lo,y_hi, x_lo , x_hi
     rect = rects[0]
     bbox = [rect[0], rect[2], rect[5], rect[1]]

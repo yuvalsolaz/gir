@@ -57,6 +57,15 @@ def geo2cell(lat, lon, level):
         print(f'geo2cell exception {ex}')
         return None
 
+def level2geo(min_level, max_level):
+    rects = []
+    for level in range(min_level, max_level):
+        curr_cell = s2.S2CellId.Begin(level)
+        while curr_cell != s2.S2CellId.End(level):
+            rects.append(get_cell_rectangle(curr_cell))
+            curr_cell = curr_cell.next()
+    return rects, 0.0
+
 def cell2geo(cell_id_token):
     try:
         # cell_id = s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
