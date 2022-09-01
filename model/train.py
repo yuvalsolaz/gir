@@ -16,7 +16,6 @@ import numpy as np
 from nltk.tokenize import sent_tokenize
 
 from datasets import load_metric
-import s2geometry as s2
 rouge_score = load_metric("rouge")
 
 from geolabel import label_field
