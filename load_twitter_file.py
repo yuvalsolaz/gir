@@ -38,15 +38,20 @@ def to_wkt(rec):
     return None
 
 def load_twitter_file(file):
-    with bz2.open(file,'rb') as fp:
-        lines = fp.readlines()
-        tweets = []
-        for line in lines:
-            tweet = json.loads(line)
-            tweets.append(tweet)
-    df = pd.DataFrame(data=tweets)
-    df['wkt'] = df.loc[df.geo.notnull(),'geo'].apply(lambda t: to_wkt(t))
-    return df.loc[df.wkt.notnull()]
+    try:
+        with bz2.open(file,'rb') as fp:
+            lines = fp.readlines()
+            tweets = []
+            for line in lines:
+                tweet = json.loads(line)
+                tweets.append(tweet)
+            df = pd.DataFrame(data=tweets)
+            df['wkt'] = df.loc[df.geo.notnull(),'geo'].apply(lambda t: to_wkt(t))
+            return df.loc[df.wkt.notnull()]
+    except Exception as ex:
+        print(f'error loading: {file}: {ex}')
+        return pd.DataFrame()
+
 
 
 # extract zip / tar file in current directory
