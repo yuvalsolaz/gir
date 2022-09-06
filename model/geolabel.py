@@ -16,7 +16,7 @@ import numpy as np
 import datasets
 import s2geometry as s2
 import pyproj
-from tqdm import tqdm
+import s2sphere as s2s
 
 transform = pyproj.Transformer.from_crs("epsg:4326", "epsg:3857")
 
@@ -73,36 +73,37 @@ def level2geo(min_level, max_level):
 
 def cell2geo(cell_id_token):
     try:
-        # cell_id = s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
-        cell = cellio.get(cell_id_token, None)
-        # get area :
-        if cell:
-            cellid = s2.S2CellId(cell)
-            area = s2.S2Cell(cellid).ExactArea() * 1e5
-        # get all rects
-        if cell:
-            rects = []
-            curr_cell = s2.S2Cell(cellid)
-            while curr_cell.level() >= 0:
-                rects.append(get_cell_rectangle(curr_cell.id()))
-                curr_cell = s2.S2Cell(s2s.CellId(curr_cell).parent())###curr_cell.parent()
+        cellid = cellio.get(cell_id_token, None)  # s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
+        if not cellid:
+            print(f'cell {cell_id_token} not in cells dictionary')
+            return None, None
 
-            return rects, area
+        # get area :
+        s2cellid = s2.S2CellId(cellid)
+        area = s2.S2Cell(s2cellid).ExactArea() * 1e5
+        # get all levels cells bounding boxes
+        rects = []
+        s2scellid = s2s.CellId(cellid)
+        while s2scellid.level() > 0:
+            rects.append(get_cell_rectangle(s2scellid.id()))
+            s2scellid = s2scellid.parent()
+        return rects, area
     except Exception as ex:
         print(f'cell_id_token2geo exception {ex}')
-    return None, None
+        return None, None
 
-import s2sphere as s2s
+
 def get_cell_rectangle(cell_id):
     vertices = []
     s2scell_id = s2s.CellId(cell_id)
     cell = s2s.Cell(s2scell_id)
     rectbound = cell.get_rect_bound()
-    for v in [0,1,2,3,0]:
+    for v in [0, 1, 2, 3, 0]:
         vertex = rectbound.get_vertex(v)
         vertices.append(vertex.lat().degrees)
         vertices.append(vertex.lng().degrees)
     return vertices
+
 
 def __get_cell_rectangle(cell_id):
     cell = s2.S2Cell(cell_id)
