@@ -26,27 +26,30 @@ max_level = 8  # between 0 to 30
 min_cell_samples = 5000
 test_size = 0.2
 
-
 '''
  mapping geo cell string to cell id
 '''
+
+
 def cellid_mapping(max_level=max_level):
     cellio = {}
-    for level in range(max_level+2):
-        print (f'cellid mapping level: {level}')
+    for level in range(max_level + 2):
+        print(f'cellid mapping level: {level}')
         cc = s2.S2CellId.Begin(level)
         while cc != cc.End(level):
-            key = str(cc).replace('/','').replace('\x00','')
+            key = str(cc).replace('/', '').replace('\x00', '')
             cellio[key] = cc.id()
             cc = cc.next()
     return cellio
 
-cellio = cellid_mapping(max_level)
 
+cellio = cellid_mapping(max_level)
 
 '''
  mapping geo coordinates to s2geometry cell
 '''
+
+
 def geo2cell(lat, lon, level):
     try:
         p = s2.S2LatLng.FromDegrees(lat, lon)
@@ -57,6 +60,7 @@ def geo2cell(lat, lon, level):
         print(f'geo2cell exception {ex}')
         return None
 
+
 def level2geo(min_level, max_level):
     rects = []
     for level in range(min_level, max_level):
@@ -66,25 +70,41 @@ def level2geo(min_level, max_level):
             curr_cell = curr_cell.next()
     return rects, 0.0
 
+
 def cell2geo(cell_id_token):
     try:
         # cell_id = s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
         cell = cellio.get(cell_id_token, None)
+        # get area :
         if cell:
             cellid = s2.S2CellId(cell)
             area = s2.S2Cell(cellid).ExactArea() * 1e5
+        # get all rects
+        if cell:
             rects = []
-            curr_cell = cellid
+            curr_cell = s2.S2Cell(cellid)
             while curr_cell.level() >= 0:
-                rects.append(get_cell_rectangle(curr_cell))
-                curr_cell = curr_cell.parent()
+                rects.append(get_cell_rectangle(curr_cell.id()))
+                curr_cell = s2.S2Cell(s2s.CellId(curr_cell).parent())###curr_cell.parent()
 
             return rects, area
     except Exception as ex:
         print(f'cell_id_token2geo exception {ex}')
     return None, None
 
+import s2sphere as s2s
 def get_cell_rectangle(cell_id):
+    vertices = []
+    s2scell_id = s2s.CellId(cell_id)
+    cell = s2s.Cell(s2scell_id)
+    rectbound = cell.get_rect_bound()
+    for v in [0,1,2,3,0]:
+        vertex = rectbound.get_vertex(v)
+        vertices.append(vertex.lat().degrees)
+        vertices.append(vertex.lng().degrees)
+    return vertices
+
+def __get_cell_rectangle(cell_id):
     cell = s2.S2Cell(cell_id)
     r = cell.GetRectBound()
     # convert rectangle coordinates to web mercator
@@ -195,6 +215,7 @@ def label_data(dataset):
 
     return dataset.filter(lambda x: x['cell_id'] is not None)
 
+
 #
 # def map_labels(ds):
 #     print('label mapping...')
@@ -211,20 +232,6 @@ def label_data(dataset):
 
 
 transformer = pyproj.Transformer.from_crs("epsg:4326", "epsg:3857")
-
-
-def conv2webmercator(sample):
-    try:
-        lat = sample['latitude']
-        lon = sample['longitude']
-        x, y = transformer.transform(lat, lon)
-        if x == float('inf') or y == float('inf'):
-            return {'x': None, 'y': None}
-        return {'x': x, 'y': y}
-    except Exception as ex:
-        print(f'error in conv2webmercator: {ex}')
-        return {'x': None, 'y': None}
-
 
 if __name__ == '__main__':
 

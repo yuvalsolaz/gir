@@ -40,12 +40,22 @@ def geocoding(text: str):
     #            0   1    2     3     4     5     6     7     8     9
     # rect = [x_lo, y_hi, x_hi, y_hi, x_hi, y_lo, x_lo, y_lo, x_lo, y_hi]    [31.81, 31.82, 35.52, 35.53])
     # bbox = y_lo,y_hi, x_lo , x_hi
-    rect = rects[0]
-    bbox = [rect[0], rect[2], rect[5], rect[1]]
+
+    def get_bbox(r):
+        ax = [r[0], r[2], r[4], r[6]]
+        ay = [r[1], r[3], r[5], r[7]]
+        xmax = max(ax)
+        xmin = min(ax)
+        ymax = max(ay)
+        ymin = min(ay)
+        bbox = [xmin, xmax, ymin, ymax]  # [rect[0], rect[2], rect[5], rect[1]]
+        return bbox
+
+
     levels_bbox = []
     for rect in rects:
-        levels_bbox.append([rect[0], rect[2], rect[5], rect[1]])
-
+        levels_bbox.append(get_bbox(rect))
+    bbox = get_bbox(rects[0])
     print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={score:.2f}\nbbox={bbox}')
     res = GeocodeResults(display_name= text,
                          confidance = score,
