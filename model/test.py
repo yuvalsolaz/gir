@@ -4,7 +4,6 @@ from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDis
 import datasets
 from inference import load_model
 
-
 '''
 Pi predicted class for each test example i, and all of its ancestor classes (car, pickup, isuzu)    
 Ti true class of test example i, and all its ancestor classes
@@ -19,14 +18,17 @@ Definitions for hierarchical f-measure hF
     hF = 2 * hP * hR / (hP + hR)
 '''
 
-def load_dataset_test(dataset_path, max_samples=None):
+def load_dataset_test(dataset_path, max_samples=None, shuffle=False):
     print(f'load dataset from: {dataset_path}')
     ds = datasets.load_from_disk(dataset_path=dataset_path)
     print(f'{ds.shape["test"][0]} records loaded')
     if max_samples:
         print(f'sample {max_samples} records')
+    idx_list = list(range(ds.shape["test"][0]))
+    if shuffle:
+        np.random.shuffle(idx_list)
 
-    return ds['test'].select(range(max_samples)) if max_samples else ds['test']
+    return ds['test'].select(idx_list[:max_samples]) if max_samples else ds['test']
 
 
 def hirarchies_metric(y_true, y_pred):
@@ -54,10 +56,10 @@ if __name__ == '__main__':
     dataset_path = sys.argv[2]
     max_samples = int(sys.argv[3]) if len(sys.argv) > 3 else 1000
 
-    test = load_dataset_test(dataset_path=dataset_path, max_samples=max_samples)
-    test = test.shuffle(seed=7)
+    test = load_dataset_test(dataset_path=dataset_path, max_samples=max_samples, shuffle=True)
 
     tokenizer, model = load_model(checkpoint=checkpoint)
+
 
     def inference(sentence):
         input_ids = tokenizer(sentence, return_tensors="pt").input_ids
