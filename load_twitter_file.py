@@ -25,7 +25,7 @@ import shapely.wkt as wkt
 from zipfile import ZipFile
 import tarfile
 
-
+columns = ['text', 'lat', 'lon', 'wkt']
 def to_wkt(rec):
     if rec is None:
         return None
@@ -82,7 +82,8 @@ if __name__ == '__main__':
     print(f'loading twitter files from {data_dir}')
     # extract all json files
     files = glob.glob(os.path.join(data_dir, '**/*.bz2'), recursive=True)
-    print(f'start loading {len(files)} files...')
+    output_file = twitter_file.replace('.tar', '.h5').replace('.zip', '.h5')
+    print(f'start loading {len(files)} files to {output_file}')
     tweets_df = pd.DataFrame()
     file_count = 0
     for file in tqdm.gui.tqdm(files, unit=' file',gui=True):
@@ -91,9 +92,9 @@ if __name__ == '__main__':
         tweets_df['lat'] = tweets_df.wkt.apply(lambda t: wkt.loads(t).x)
         tweets_df['lon'] = tweets_df.wkt.apply(lambda t: wkt.loads(t).y)
         file_count += 1
-        output_file = twitter_file.replace('.tar','.csv').replace('.zip','.csv')
         print(f'{tweets_df.shape[0]} geo tweets from {file_count} files saving to {output_file}')
-        tweets_df.to_csv(output_file)
+        tweets_df[columns].to_hdf(path_or_buf=output_file, key='tweets', mode='a')
+        # tweets_df.to_csv(output_file, mode='a', header=not os.path.exists(output_file))
 
     print(f'this is the end:\ntotal:{tweets_df.shape} geo tweets downloaded')
 

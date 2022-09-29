@@ -22,6 +22,10 @@ Definitions for hierarchical f-measure hF
 def load_dataset_test(dataset_path, max_samples=None):
     print(f'load dataset from: {dataset_path}')
     ds = datasets.load_from_disk(dataset_path=dataset_path)
+    print(f'{ds.shape["test"][0]} records loaded')
+    if max_samples:
+        print(f'sample {max_samples} records')
+
     return ds['test'].select(range(max_samples)) if max_samples else ds['test']
 
 
@@ -44,12 +48,15 @@ def hirarchies_metric(y_true, y_pred):
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        print(f'usage: python {sys.argv[0]} <model file> <dataset_path>')
+        print(f'usage: python {sys.argv[0]} <model file> <dataset_path> <max_samples optional> ')
         exit(1)
     checkpoint = sys.argv[1]
     dataset_path = sys.argv[2]
+    max_samples = int(sys.argv[3]) if len(sys.argv) > 3 else 1000
 
-    test = load_dataset_test(dataset_path=dataset_path, max_samples=1000)
+    test = load_dataset_test(dataset_path=dataset_path, max_samples=max_samples)
+    test = test.shuffle(seed=7)
+
     tokenizer, model = load_model(checkpoint=checkpoint)
 
     def inference(sentence):
@@ -66,7 +73,6 @@ if __name__ == '__main__':
 
 
     print(f'evaluates {test.shape[0]} samples from {dataset_path}')
-
     test = test.map(lambda x: {'inference': inference(x["english_desc"]) if x["english_desc"] is not None else ''})
     accuracy = accuracy_score(y_true=test['s2_sequence'], y_pred=test['inference'])
     h_accuracy = hirarchies_metric(y_true=test['s2_sequence'], y_pred=test['inference'])

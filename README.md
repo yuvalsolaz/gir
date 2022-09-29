@@ -21,5 +21,7 @@ https://arxiv.org/pdf/2207.04873.pdf
 
 ,return_dict_in_generate=True
 
-    
+
+# s2 geometry Region Coverer demo:
+https://s2.sidewalklabs.com/regioncoverer  
    
