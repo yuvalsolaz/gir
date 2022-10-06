@@ -28,3 +28,4 @@ https://s2.sidewalklabs.com/regioncoverer
 TODO:
 use each sequence token confidence in hierarchy classification metric
 verify the loss function reflects the hierarchy structure of the output sequence 
+sample data visualization + s2cells  
