@@ -6,7 +6,7 @@ Implementation for geocoding model
 TODO: 
 1. label 4 cube sides (discard poles)
 2. validation benchmark  
-3. geo visualization for inference: notebook with input text and put cell on map  
+3. geo visualization for inference: notebook with input text and cell geometry on map  
 4. train on tweeter data
 5. train on wiki all items 
 6. beam search for output sequence 
@@ -25,3 +25,6 @@ https://arxiv.org/pdf/2207.04873.pdf
 # s2 geometry Region Coverer demo:
 https://s2.sidewalklabs.com/regioncoverer  
    
+TODO:
+use each sequence token confidence in hierarchy classification metric
+verify the loss function reflects the hierarchy structure of the output sequence 
