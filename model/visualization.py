@@ -17,28 +17,41 @@ def unique_labels(ds):
     ds.reset_format()
     return unique_labels
 
-if __name__ == '__main__':
-
-    if len(sys.argv) < 2:
-        print(f'usage: python {sys.argv[0]} <dataset_path>')
-        exit(1)
-    dataset_path = sys.argv[1]
-    print(f'loading dataset: {dataset_path}...')
+def create_train_cells_polygons_file(dataset_path, out_file):
     ds = datasets.load_from_disk(dataset_path=dataset_path)
     print(f'{ds.shape} samples loaded')
     train = ds['train']
     unique_ids = unique_labels(train)
     print(f'{train.shape[0]} train samples {len(unique_ids)} unique labels')
     cells = [cell2geo(cell_id[:-1])[0][0] for cell_id in unique_ids]
-    poly_list = [f'POLYGON(({c[0]} {c[1]},{c[2]} {c[3]},{c[4]} {c[5]},{c[6]} {c[7]},{c[8]} {c[9]}))' for c in cells]
+    poly_list = [f'POLYGON(({c[1]} {c[0]},{c[3]} {c[2]},{c[5]} {c[4]},{c[7]} {c[6]},{c[9]} {c[8]}))' for c in cells]
+    print(f'write train cells polygons to {out_file}')
 
-    # open file in write mode
-    with open(r'cells_wkt.csv', 'w') as fp:
+    with open(out_file, 'w') as fp:
         fp.write('cell_id;wkt\n')
         for i,poly in enumerate(poly_list):
             fp.write(f'{unique_ids[i]};{poly}\n')
 
+    train_df = pd.DataFrame(train)
+    train_df['point_wkt'] = train_df.apply(lambda t : f'POINT({t["longitude"]} {t["latitude"]})',axis=1)
+    train_df.to_csv(f'points_{out_file}')
 
+
+
+def create_data_points_file(data_points_file, out_file):
+    df = pd.read_csv(data_points_file, dtype=str)
+    return len(df)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print(f'usage: python {sys.argv[0]} <dataset_path>')
+        exit(1)
+    dataset_path = sys.argv[1]
+    out_file = 'train_cells_wkt.csv'
+    print(f'loading dataset: {dataset_path}...')
+    print(f'writing cells polygons to {out_file}...')
+    create_train_cells_polygons_file(dataset_path=dataset_path, out_file=out_file)
 
 
 def visualize_dataset(dataset:Dataset):
