@@ -5,6 +5,8 @@ seq2seq/
 model/seq2seq/
 model/inference.csv
 model/wandb/
+inference.csv
+model/*.csv
 
 ./data/*
 data/
