@@ -5,7 +5,7 @@ import colorcet
 import datasets
 from datasets import Dataset
 import pandas as pd
-from geolabel import label_field, cell2geo
+from geolabel import label_field, cell2geo, get_cell_polygon
 
 
 # visualize cells
@@ -14,12 +14,13 @@ def create_train_cells_polygons_file(dataset_path, out_file):
     print(f'{ds.shape} samples loaded')
     train = ds['train']
     train_df = pd.DataFrame(train)
-    train_df['point_wkt'] = train_df.apply(lambda t: f'POINT({t["longitude"]} {t["latitude"]})', axis=1)
-    train_df.to_csv(f'points_{out_file}')
+    # train_df['point_wkt'] = train_df.apply(lambda t: f'POINT({t["longitude"]} {t["latitude"]})', axis=1)
+    # train_df.to_csv(f'points_{out_file}')
 
     def rect2wkt(t):
         c = cell2geo(t[label_field][:-1])[0][0]
-        return f'POLYGON(({c[1]} {c[0]},{c[3]} {c[2]},{c[5]} {c[4]},{c[7]} {c[6]},{c[9]} {c[8]}))'
+        return f'POLYGON(({c[0][0]} {c[0][1]},{c[1][0]} {c[1][1]},{c[2][0]} {c[2][1]},{c[3][0]} {c[3][1]},{c[0][0]} {c[0][1]}))'
+#        return f'POLYGON(({c[1]} {c[0]},{c[3]} {c[2]},{c[5]} {c[4]},{c[7]} {c[6]},{c[9]} {c[8]}))'
 
     cells_df = train_df.drop_duplicates(subset=label_field)
     cells_df['polygon_wkt'] = cells_df.apply(lambda t: rect2wkt(t), axis=1)

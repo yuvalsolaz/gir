@@ -85,7 +85,7 @@ def cell2geo(cell_id_token):
         rects = []
         s2scellid = s2s.CellId(cellid)
         while s2scellid.level() > 0:
-            rects.append(get_cell_rectangle(s2scellid.id()))
+            rects.append(get_cell_polygon(s2scellid.id()))
             s2scellid = s2scellid.parent()
         return rects, area
     except Exception as ex:
@@ -102,6 +102,16 @@ def get_cell_rectangle(cell_id):
         vertex = rectbound.get_vertex(v)
         vertices.append(vertex.lat().degrees)
         vertices.append(vertex.lng().degrees)
+    return vertices
+
+def get_cell_polygon(cell_id):
+    vertices = []
+    cell = s2.S2Cell(s2.S2CellId(cell_id))
+    for i in range(0, 4):
+        vertex = cell.GetVertex(i)
+        latlng = s2.S2LatLng(vertex)
+        vertices.append((latlng.lat().degrees(),
+                         latlng.lng().degrees()))
     return vertices
 
 
