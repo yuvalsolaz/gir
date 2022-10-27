@@ -104,6 +104,19 @@ def get_cell_rectangle(cell_id):
         vertices.append(vertex.lng().degrees)
     return vertices
 
+def cell2polygon(cell_id_token):
+    try:
+        cellid = cellio.get(cell_id_token, None)  # s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
+        if not cellid:
+            print(f'cell {cell_id_token} not in cells dictionary')
+            return None, None
+
+        s2scellid = s2s.CellId(cellid)
+        return get_cell_polygon(s2scellid.id())
+    except Exception as ex:
+        print(f'cell_id_token2geo exception {ex}')
+        return None
+
 def get_cell_polygon(cell_id):
     vertices = []
     cell = s2.S2Cell(s2.S2CellId(cell_id))
