@@ -60,7 +60,7 @@ def geo2cell(lat, lon, level):
         print(f'geo2cell exception {ex}')
         return None
 
-
+#region rectangles
 def level2geo(min_level, max_level):
     rects = []
     for level in range(min_level, max_level):
@@ -71,7 +71,7 @@ def level2geo(min_level, max_level):
     return rects, 0.0
 
 
-def cell2geo(cell_id_token):
+def get_token_rects(cell_id_token):
     try:
         cellid = cellio.get(cell_id_token, None)  # s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
         if not cellid:
@@ -85,13 +85,13 @@ def cell2geo(cell_id_token):
         rects = []
         s2scellid = s2s.CellId(cellid)
         while s2scellid.level() > 0:
-            rects.append(get_cell_polygon(s2scellid.id()))
+            rects.append(get_cell_rectangle(s2scellid.id()))
             s2scellid = s2scellid.parent()
         return rects, area
     except Exception as ex:
-        print(f'cell_id_token2geo exception {ex}')
+        print(f'get_token_rects exception {ex}')
         return None, None
-
+#endregion
 
 def get_cell_rectangle(cell_id):
     vertices = []
@@ -104,7 +104,31 @@ def get_cell_rectangle(cell_id):
         vertices.append(vertex.lng().degrees)
     return vertices
 
-def cell2polygon(cell_id_token):
+#region polygon
+def get_token_polygons(cell_id_token):
+    try:
+        cellid = cellio.get(cell_id_token, None)  # s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
+        if not cellid:
+            print(f'cell {cell_id_token} not in cells dictionary')
+            return None, None
+            # get area :
+        s2cellid = s2.S2CellId(cellid)
+        area = s2.S2Cell(s2cellid).ExactArea() * 1e5
+        polygons = []
+        s2scellid = s2s.CellId(cellid)
+        while s2scellid.level() > 0:
+            polygons.append(get_cell_polygon(s2scellid.id()))
+            s2scellid = s2scellid.parent()
+        return polygons, area
+
+
+
+        return get_cell_polygon(s2scellid.id())
+    except Exception as ex:
+        print(f'cell_id_token2geo exception {ex}')
+        return None
+
+def get_token_polygon(cell_id_token):
     try:
         cellid = cellio.get(cell_id_token, None)  # s2.S2CellId.FromToken(cell_id_token,len(cell_id_token))
         if not cellid:
@@ -127,26 +151,10 @@ def get_cell_polygon(cell_id):
                          latlng.lng().degrees()))
     return vertices
 
-
-def __get_cell_rectangle(cell_id):
-    cell = s2.S2Cell(cell_id)
-    r = cell.GetRectBound()
-    # convert rectangle coordinates to web mercator
-    # x_hi, y_hi = transform.transform(r.lat_hi().degrees(), r.lng_hi().degrees())
-    # x_lo, y_lo = transform.transform(r.lat_lo().degrees(), r.lng_lo().degrees())
-    x_hi, y_hi = r.lat_hi().degrees(), r.lng_hi().degrees()
-    x_lo, y_lo = r.lat_lo().degrees(), r.lng_lo().degrees()
-
-    if x_lo == float('inf') or y_lo == float('inf') or x_hi == float('inf') or y_hi == float('inf'):
-        return None
-    else:
-        return [x_lo, y_hi, x_hi, y_hi, x_hi, y_lo, x_lo, y_lo, x_lo, y_hi]
-
-
 '''
     freeze cell for all samples with less then minimum cell samples 
 '''
-
+#endregion
 
 def freeze(dataset, min_cell_samples):
     # calculates value counts for each cell-id
