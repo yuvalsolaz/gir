@@ -144,7 +144,7 @@ def get_token_polygon(cell_id_token):
 def get_cell_polygon(cell_id):
     vertices = []
     cell = s2.S2Cell(s2.S2CellId(cell_id))
-    for i in range(0, 4):
+    for i in [0,1,2,3,0]:
         vertex = cell.GetVertex(i)
         latlng = s2.S2LatLng(vertex)
         vertices.append((latlng.lat().degrees(),

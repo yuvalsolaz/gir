@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pydantic import BaseModel
 from model.inference import load_model, inference
-from model.geolabel import get_token_rects, level2geo
+from model.geolabel import get_token_rects, get_token_polygon
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"],  # Allows all origins
@@ -24,6 +24,7 @@ class GeocodeResults(BaseModel):
     confidance: float
     boundingbox: List[float]
     levels_bbox: List[List[float]]
+    polygon:List[List[float]]
 
 checkpoint = r'/home/yuvalso/repository/gir/seq2seq/checkpoint-2100000/'
 tokenizer, model = load_model(checkpoint=checkpoint)
@@ -33,7 +34,7 @@ def geocoding(text: str):
 
     # model inference on text:
     cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text)
-    rects, area = get_token_rects(cellid)
+    rects, area = get_token_rects(cell_id_token=cellid)    polygon = get_token_polygon(cell_id_token=cellid)
     # rects, area = level2geo(min_level=2,max_level=3)
     if not rects:
         raise HTTPException(status_code=404, detail=f'inference error for {text}')
@@ -56,7 +57,8 @@ def geocoding(text: str):
     res = GeocodeResults(display_name= text,
                          confidance = score,
                          boundingbox = bbox,
-                         levels_bbox = levels_bbox)
+                         levels_bbox = levels_bbox,
+                         polygon = polygon)
     return [res]
 
 
