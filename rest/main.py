@@ -24,7 +24,7 @@ class GeocodeResults(BaseModel):
     confidance: float
     boundingbox: List[float]
     levels_bbox: List[List[float]]
-    polygon:List[List[float]]
+    polygon:List[float]
 
 checkpoint = r'/home/yuvalso/repository/gir/seq2seq/checkpoint-2100000/'
 tokenizer, model = load_model(checkpoint=checkpoint)
@@ -34,7 +34,8 @@ def geocoding(text: str):
 
     # model inference on text:
     cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text)
-    rects, area = get_token_rects(cell_id_token=cellid)    polygon = get_token_polygon(cell_id_token=cellid)
+    rects, area = get_token_rects(cell_id_token=cellid)
+    polygon = get_token_polygon(cell_id_token=cellid)
     # rects, area = level2geo(min_level=2,max_level=3)
     if not rects:
         raise HTTPException(status_code=404, detail=f'inference error for {text}')
@@ -54,11 +55,17 @@ def geocoding(text: str):
         levels_bbox.append(get_bbox(rect))
     bbox = get_bbox(rects[0])
     print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={score:.2f}\nbbox={bbox}')
+
+    polygon_list = []
+    for p in polygon:
+        polygon_list.append(p[1])
+        polygon_list.append(p[0])
+
     res = GeocodeResults(display_name= text,
                          confidance = score,
                          boundingbox = bbox,
                          levels_bbox = levels_bbox,
-                         polygon = polygon)
+                         polygon = polygon_list)
     return [res]
 
 
