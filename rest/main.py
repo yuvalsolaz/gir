@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pydantic import BaseModel
 from model.inference import load_model, inference
-from model.geolabel import get_token_rects, get_token_polygon
+from model.geolabel import get_token_rects, get_token_polygon, get_token_polygons
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"],  # Allows all origins
@@ -23,8 +23,7 @@ class GeocodeResults(BaseModel):
     display_name: str
     confidance: float
     boundingbox: List[float]
-    levels_bbox: List[List[float]]
-    polygon:List[float]
+    levels_polygons: List[List[float]]
 
 checkpoint = r'/home/yuvalso/repository/gir/seq2seq/checkpoint-2100000/'
 tokenizer, model = load_model(checkpoint=checkpoint)
@@ -35,37 +34,34 @@ def geocoding(text: str):
     # model inference on text:
     cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text)
     rects, area = get_token_rects(cell_id_token=cellid)
-    polygon = get_token_polygon(cell_id_token=cellid)
-    # rects, area = level2geo(min_level=2,max_level=3)
+    polygons, area = get_token_polygons(cell_id_token=cellid)
     if not rects:
         raise HTTPException(status_code=404, detail=f'inference error for {text}')
 
     def get_bbox(r):
         ax = [r[0], r[2], r[4], r[6]]
         ay = [r[1], r[3], r[5], r[7]]
-        xmax = max(ax)
-        xmin = min(ax)
-        ymax = max(ay)
-        ymin = min(ay)
-        bbox = [xmin, xmax, ymin, ymax]  # [rect[0], rect[2], rect[5], rect[1]]
-        return bbox
+        return [min(ax),max(ax),min(ay),max(ay)]
 
-    levels_bbox = []
-    for rect in rects:
-        levels_bbox.append(get_bbox(rect))
     bbox = get_bbox(rects[0])
-    print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={score:.2f}\nbbox={bbox}')
 
-    polygon_list = []
-    for p in polygon:
-        polygon_list.append(p[1])
-        polygon_list.append(p[0])
+    def flatten(polygon): # return list(sum(polygon,())) # we need it flipped
+        polygon_list = []
+        for p in polygon:
+            polygon_list.append(p[1])
+            polygon_list.append(p[0])
+        return polygon_list
+
+    levels_polygons = []
+    for poly in polygons:
+         levels_polygons.append(flatten(poly))
+
+    print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={score:.2f}\nbbox={bbox}')
 
     res = GeocodeResults(display_name= text,
                          confidance = score,
                          boundingbox = bbox,
-                         levels_bbox = levels_bbox,
-                         polygon = polygon_list)
+                         levels_polygons = levels_polygons)
     return [res]
 
 
