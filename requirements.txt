@@ -8,6 +8,7 @@ nltk
 rouge_score
 sklearn
 wandb
+xlrd
 
 # for presentations
 fastapi
