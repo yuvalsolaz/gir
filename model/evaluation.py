@@ -50,6 +50,9 @@ if __name__ == '__main__':
 
     df['inference_polygon'] = df.apply(lambda t: get_sentence_polygon(t['text']), axis=1)
     df['label_distance'] = df.apply(lambda t: get_label_distance(t['inference_polygon'], [t['lat'],t['lon']]), axis=1)
+    output_file = evaluation_file.replace('.json','_inference.csv')
+    df.to_csv(output_file)
+
     pass
 
 
