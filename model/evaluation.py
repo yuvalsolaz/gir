@@ -8,7 +8,7 @@ from model.geolabel import get_token_polygon
 transform = pyproj.Transformer.from_crs("epsg:4326", "epsg:32636")
 
 def geo2utm(geo_coord_list):
-    utm_coord_list = list((tuple(float,float)))
+    utm_coord_list = list()
     for coord in geo_coord_list:
         lat = coord[0]
         lon = coord[1]
@@ -35,21 +35,21 @@ if __name__ == '__main__':
 
     tokenizer, model = load_model(checkpoint=checkpoint)
 
-    def get_sentence_polygon(text, location):
+    def get_sentence_polygon(text):
         cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text)
         return get_token_polygon(cell_id_token=cellid)
 
     def get_label_distance(inference_poly, gt_location):
         # transform to UTM for distance calculation
-        utm_inference_poly = transform.transform(inference_poly)
-        utm_gt_location = transform.transform(gt_location)
+        utm_inference_poly = geo2utm(inference_poly)
+        utm_gt_location = geo2utm([gt_location])
         sh_utm_inference_poly = geometry.Polygon(utm_inference_poly)
         sh_utm_gt_location = geometry.Point(utm_gt_location)
         return sh_utm_inference_poly.distance(sh_utm_gt_location)
 
 
     df['inference_polygon'] = df.apply(lambda t: get_sentence_polygon(t['text']), axis=1)
-    df['label_distance'] = df.apply(lambda t: get_label_distance(t['inference_polygon']), axis=1)
+    df['label_distance'] = df.apply(lambda t: get_label_distance(t['inference_polygon'], [t['lat'],t['lon']]), axis=1)
     pass
 
 
