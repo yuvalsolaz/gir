@@ -22,6 +22,22 @@ https://github.com/milangritta/Geocoding-with-Map-Vector
 '''
 
 
+def get_sentence_polygon(text):
+    print(f'inference text length:{len(text)}- {text[:100]}')
+    cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text[:512])
+    return get_token_polygon(cell_id_token=cellid)
+
+
+def get_label_distance(gt_location, text):
+    inference_poly = get_sentence_polygon(text)
+    utm_inference_poly = geo2utm(inference_poly)
+    utm_gt_location = geo2utm([gt_location])
+    sh_utm_inference_poly = geometry.Polygon(utm_inference_poly)
+    sh_utm_gt_location = geometry.Point(utm_gt_location)
+    distance = sh_utm_inference_poly.distance(sh_utm_gt_location)
+    print(f'error distance:{distance} text length:{len(text)}- {text[:100]}')
+
+
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print(f'usage: python {sys.argv[0]} <evaluation file> <model file>')
@@ -35,24 +51,12 @@ if __name__ == '__main__':
 
     tokenizer, model = load_model(checkpoint=checkpoint)
 
-    def get_sentence_polygon(text):
-        cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text)
-        return get_token_polygon(cell_id_token=cellid)
-
-    def get_label_distance(inference_poly, gt_location):
-        # transform to UTM for distance calculation
-        utm_inference_poly = geo2utm(inference_poly)
-        utm_gt_location = geo2utm([gt_location])
-        sh_utm_inference_poly = geometry.Polygon(utm_inference_poly)
-        sh_utm_gt_location = geometry.Point(utm_gt_location)
-        return sh_utm_inference_poly.distance(sh_utm_gt_location)
-
-
-    df['inference_polygon'] = df.apply(lambda t: get_sentence_polygon(t['text']), axis=1)
-    df['label_distance'] = df.apply(lambda t: get_label_distance(t['inference_polygon'], [t['lat'],t['lon']]), axis=1)
+    # df['inference_polygon'] = df.apply(lambda t: get_sentence_polygon(t['text']), axis=1)
+    df['label_distance'] = df.apply(lambda t: get_label_distance([t['lat'],t['lon']],t['text']), axis=1)
     output_file = evaluation_file.replace('.json','_inference.csv')
+    print(f'write {df.shape[0]} records with error distances to {output_file}')
     df.to_csv(output_file)
 
-    pass
+
 
 
