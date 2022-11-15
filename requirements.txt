@@ -9,6 +9,8 @@ rouge_score
 sklearn
 wandb
 xlrd
+pyproj
+shapely
 
 # for presentations
 fastapi
@@ -17,6 +19,5 @@ pydash
 holoviews
 colorcet
 datashader
-pyproj
 jupyter
 matplotlib
