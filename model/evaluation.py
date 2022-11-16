@@ -40,7 +40,7 @@ if __name__ == '__main__':
     checkpoint = sys.argv[2]
 
     print(f'loading {evaluation_file}...')
-    df = pd.read_json(evaluation_file)[:10]
+    df = pd.read_json(evaluation_file)
     print(f'{df.shape[0]} records loaded')
 
     tokenizer, model = load_model(checkpoint=checkpoint)
