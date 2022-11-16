@@ -23,7 +23,6 @@ https://github.com/milangritta/Geocoding-with-Map-Vector
 
 
 def get_sentence_polygon(text):
-    print(f'inference text length:{len(text)}- {text[:100]}')
     cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text[:512])
     return get_token_polygon(cell_id_token=cellid)
 
@@ -35,7 +34,9 @@ def get_label_distance(gt_location, text):
     sh_utm_inference_poly = geometry.Polygon(utm_inference_poly)
     sh_utm_gt_location = geometry.Point(utm_gt_location)
     distance = sh_utm_inference_poly.distance(sh_utm_gt_location)
-    print(f'error distance:{distance} text length:{len(text)}- {text[:100]}')
+    centroid_distance = sh_utm_inference_poly.centroid.distance(sh_utm_gt_location)
+    print(f'distance:{distance} centroid distance:{centroid_distance} text length:{len(text)}- {text[:100]}')
+    return centroid_distance
 
 
 if __name__ == '__main__':
