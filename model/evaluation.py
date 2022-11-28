@@ -1,4 +1,5 @@
 import sys
+import os
 import numpy as np
 import pandas as pd
 from shapely import geometry
@@ -34,18 +35,21 @@ def auc(df):
     Prints Mean, Median, AUC and acc@161km for the list.
     :param accuracy: a list of geocoding errors
     """
-    distances_vector = np.array(sorted(df['distance'].values))
+    distances_vector = np.array(sorted(df['distance'].values.astype(np.float)))
+    distances_vector = distances_vector[distances_vector < 1e100]
+
     median_error = np.median(distances_vector)
     mean_error = np.mean(distances_vector)
     print(f'Median error: {median_error}')
     print(f'Mean error: {mean_error}')
-    log_distances_vector = np.log(np.array(distances_vector) + 1)
-    k = np.log(161)
-    accuracy_at_161 = np.count_nonzero(log_distances_vector < k) / len(log_distances_vector)
-    auc = np.trapz(log_distances_vector) / (np.log(20039000) * (len(log_distances_vector) - 1))
+
+    k = 161000 # for accuracy @161
+    accuracy_at_161 = np.count_nonzero(distances_vector < k) / len(distances_vector)
     print(f'Accuracy to 161 km: {accuracy_at_161}')
+
+    log_distances_vector = np.log(np.array(distances_vector) + 1)
+    auc = np.trapz(log_distances_vector) / (np.log(20039000) * (len(log_distances_vector) - 1))
     print(f'AUC = {auc}')  # Trapezoidal rule.
-    print("==============================================================================================")
     return auc
 
 
@@ -78,6 +82,13 @@ if __name__ == '__main__':
     evaluation_file = sys.argv[1]
     checkpoint = sys.argv[2]
 
+    output_file = evaluation_file.replace('.json', '_inference.csv')
+    if os.path.exists(output_file):
+        print(f'output file exists loading it {output_file}...')
+        df = pd.read_csv(output_file)
+        auc(df)
+        exit(0)
+
     print(f'loading {evaluation_file}...')
     df = pd.read_json(evaluation_file)
     print(f'{df.shape[0]} records loaded')
@@ -85,7 +96,7 @@ if __name__ == '__main__':
     tokenizer, model = load_model(checkpoint=checkpoint)
     tqdm.pandas()
 
-    output_file = evaluation_file.replace('.json', '_inference.csv')
+
     print('inference polygons....')
     df['inference_polygon'] = df.progress_apply(lambda t: get_sentence_polygon(t['text']), axis=1)
     print(f'write {df.shape[0]} records with inference polygon to {output_file}')
