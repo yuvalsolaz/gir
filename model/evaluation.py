@@ -35,17 +35,17 @@ def auc(df):
     Prints Mean, Median, AUC and acc@161km for the list.
     :param accuracy: a list of geocoding errors
     """
-    distances_vector = np.array(sorted(df['distance'].values.astype(np.float)))
+    distances_vector = np.array(sorted(df['centroid_distance'].values.astype(np.float)))
     distances_vector = distances_vector[distances_vector < 1e100]
 
     median_error = np.median(distances_vector)
     mean_error = np.mean(distances_vector)
-    print(f'Median error: {median_error}')
-    print(f'Mean error: {mean_error}')
+    print(f'Median error: {int(median_error/1000.0)} km')
+    print(f'Mean error: {int(mean_error/1000.0)} km')
 
     k = 161000 # for accuracy @161
     accuracy_at_161 = np.count_nonzero(distances_vector < k) / len(distances_vector)
-    print(f'Accuracy to 161 km: {accuracy_at_161}')
+    print(f'Accuracy@161 km: {accuracy_at_161}')
 
     log_distances_vector = np.log(np.array(distances_vector) + 1)
     auc = np.trapz(log_distances_vector) / (np.log(20039000) * (len(log_distances_vector) - 1))
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     print('calculates distance and centroid distance from inference polygon to gt location....')
     df['distance'] = df.apply(lambda t: get_distance(t, use_centroid=False), axis=1)
-    df['centrid_distance'] = df.apply(lambda t: get_distance(t, use_centroid=True), axis=1)
+    df['centroid_distance'] = df.apply(lambda t: get_distance(t, use_centroid=True), axis=1)
     print(f'write {df.shape[0]} records with distances to {output_file}')
     df.to_csv(output_file)
     auc = auc(df)
