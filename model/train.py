@@ -71,6 +71,9 @@ def train(dataset_path, checkpoint):
         return model_inputs
 
     non_label_columns = train.column_names
+    train = train.map(lambda x: {'english_desc': x["english_desc"].lower() if x["english_desc"] is not None else ''})
+    test = test.map(lambda x: {'english_desc': x["english_desc"].lower() if x["english_desc"] is not None else ''})
+
     tokenized_train = train.map(preprocess_function, batched=True)
     print(f'tokenize input and labels on test')
     tokenized_test = test.map(preprocess_function, batched=True)
