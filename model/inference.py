@@ -16,7 +16,7 @@ def load_model(checkpoint):
 
 
 def inference(tokenizer, model, sentence):
-    input_ids = tokenizer(sentence, return_tensors="pt").input_ids
+    input_ids = tokenizer(sentence.lower(), return_tensors="pt").input_ids
     outputs = model.generate(input_ids,
                              max_length=10,
                              num_beams=10,

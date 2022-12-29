@@ -26,15 +26,15 @@ class GeocodeResults(BaseModel):
     levels_polygons: List[List[float]]
 
 # checkpoint = r'/home/yuvalso/repository/gir/seq2seq/checkpoint-2100000/'
-checkpoint = r'/home/yuvalso/repository/gir/model/seq2seq/checkpoint-700000/'
+checkpoint = r'/home/yuvalso/repository/gir/model/seq2seq/checkpoint-900000/'
 
 tokenizer, model = load_model(checkpoint=checkpoint)
 
 @app.get("/geocoding", response_model=List[GeocodeResults])
 def geocoding(text: str):
 
-    # model inference on text (lowercase the input same as the train input):
-    cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text.lower())
+    # model inference on text :
+    cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text)
     rects, area = get_token_rects(cell_id_token=cellid)
     polygons, area = get_token_polygons(cell_id_token=cellid)
     if not rects:
