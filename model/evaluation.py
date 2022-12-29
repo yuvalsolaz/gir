@@ -56,6 +56,8 @@ def auc(df):
 def geo2utm(geo_coord_list):
     utm_coord_list = list()
     for coord in geo_coord_list:
+        if coord is None:
+            continue
         lat = coord[0]
         lon = coord[1]
         x, y = transform.transform(lat, lon)

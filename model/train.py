@@ -86,8 +86,8 @@ def train(dataset_path, checkpoint):
                                              report_to=['wandb'],
                                              run_name= 'wiki-5000',
                                              learning_rate=1.5e-5,
-                                             per_device_train_batch_size=12,
-                                             per_device_eval_batch_size=12,
+                                             per_device_train_batch_size=8,
+                                             per_device_eval_batch_size=8,
                                              weight_decay=0.01,
                                              num_train_epochs=5,
                                              predict_with_generate=True,
@@ -163,7 +163,7 @@ def train(dataset_path, checkpoint):
 
     print(f'training...{training_args}')
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=checkpoint)
 
 
 import sys
