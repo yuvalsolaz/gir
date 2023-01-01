@@ -26,7 +26,7 @@ class GeocodeResults(BaseModel):
     levels_polygons: List[List[float]]
 
 # checkpoint = r'/home/yuvalso/repository/gir/seq2seq/checkpoint-2100000/'
-checkpoint = r'/home/yuvalso/repository/gir/model/seq2seq/checkpoint-900000/'
+checkpoint = r'/home/yuvalso/repository/gir/model/seq2seq/checkpoint-3100000/'
 
 tokenizer, model = load_model(checkpoint=checkpoint)
 
