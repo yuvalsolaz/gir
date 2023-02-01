@@ -10,7 +10,8 @@ Geographic labeling flow:
     TODO:  batch mapping
 
 '''
-
+import os
+import pickle
 import sys
 import numpy as np
 import datasets
@@ -30,9 +31,16 @@ test_size = 0.2
  mapping geo cell string to cell id
 '''
 
-
 def cellid_mapping(max_level=max_level):
+    cellio_file = r'cellio.pkl'
     cellio = {}
+    # if cellio file exists load it:
+    if os.path.exists(cellio_file):
+        print(f'loading cell ids mapping from {cellio_file}...')
+        with open(cellio_file,'b+r') as fp:
+            return pickle.load(fp)
+
+    print(f'calculating cell ids mapping')
     for level in range(max_level + 2):
         print(f'cellid mapping level: {level}')
         cc = s2.S2CellId.Begin(level)
@@ -40,6 +48,11 @@ def cellid_mapping(max_level=max_level):
             key = str(cc).replace('/', '').replace('\x00', '')
             cellio[key] = cc.id()
             cc = cc.next()
+
+    print(f'saving cell ids mapping to {cellio_file}...')
+    with open(cellio_file, 'b+w') as fp:
+        pickle.dump(cellio, fp)
+
     return cellio
 
 
