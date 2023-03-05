@@ -6,11 +6,12 @@ tqdm
 pandas
 nltk
 rouge_score
-sklearn
+scikit-learn
 wandb
 xlrd
 pyproj
 shapely
+s2sphere
 
 # for presentations
 fastapi

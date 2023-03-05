@@ -21,7 +21,7 @@ def read_root():
 
 class GeocodeResults(BaseModel):
     display_name: str
-    confidance: float
+    confidance: List[float]
     boundingbox: List[float]
     levels_polygons: List[List[float]]
 
@@ -34,7 +34,7 @@ tokenizer, model = load_model(checkpoint=checkpoint)
 def geocoding(text: str):
 
     # model inference on text :
-    cellid, score = inference(tokenizer=tokenizer, model=model, sentence=text)
+    cellid, scores = inference(tokenizer=tokenizer, model=model, sentence=text)
     rects, area = get_token_rects(cell_id_token=cellid)
     polygons, area = get_token_polygons(cell_id_token=cellid)
     if not rects:
@@ -58,10 +58,10 @@ def geocoding(text: str):
     for poly in polygons:
          levels_polygons.append(flatten(poly))
 
-    print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={score:.2f}\nbbox={bbox}')
+    print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={scores[0]:.2f}\nbbox={bbox}')
 
     res = GeocodeResults(display_name= text,
-                         confidance = score,
+                         confidance = scores,
                          boundingbox = bbox,
                          levels_polygons = levels_polygons)
     return [res]

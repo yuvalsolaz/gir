@@ -5,7 +5,7 @@ from transformers import AutoModelForSeq2SeqLM
 
 def load_model(checkpoint):
     print(f'loading tokenizer from t5-base')
-    tokenizer = AutoTokenizer.from_pretrained('t5-base')
+    tokenizer = AutoTokenizer.from_pretrained('t5-base', model_max_length=512)
 
     print(f'loading model from {checkpoint}...')
     model = AutoModelForSeq2SeqLM.from_pretrained(pretrained_model_name_or_path=checkpoint)
@@ -20,10 +20,13 @@ def inference(tokenizer, model, sentence):
     outputs = model.generate(input_ids,
                              max_length=10,
                              num_beams=10,
+                             # num_return_sequences=10,
                              length_penalty=0.0,
                              output_scores=True,
-                             return_dict_in_generate=True
-                             )
+                             return_dict_in_generate=True)
     cellid = tokenizer.decode(outputs['sequences'][0], skip_special_tokens=True)
-    score = float(np.exp(outputs['sequences_scores'])[0])
-    return cellid, score
+    transition_scores = model.compute_transition_scores(outputs.sequences, outputs.scores, outputs.beam_indices,
+                                                        normalize_logits=True)
+    seq_len = transition_scores[0].shape[-1] + 1
+    token_scores = [np.prod(np.exp(transition_scores[0][:seq_len]).numpy()) for seq_len in np.arange(1, seq_len)]
+    return cellid, token_scores
