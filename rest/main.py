@@ -21,8 +21,8 @@ def read_root():
 
 class GeocodeResults(BaseModel):
     display_name: str
-    confidance: List[float]
-    boundingbox: List[float]
+    confidence: List[float]
+    boundingboxes: List[List[float]]
     levels_polygons: List[List[float]]
 
 # checkpoint = r'/home/yuvalso/repository/gir/seq2seq/checkpoint-2100000/'
@@ -45,7 +45,7 @@ def geocoding(text: str):
         ay = [r[1], r[3], r[5], r[7]]
         return [min(ax),max(ax),min(ay),max(ay)]
 
-    bbox = get_bbox(rects[0])
+    bboxes = [get_bbox(rect) for rect in rects]
 
     def flatten(polygon): # return list(sum(polygon,())) # we need it flipped
         polygon_list = []
@@ -58,11 +58,11 @@ def geocoding(text: str):
     for poly in polygons:
          levels_polygons.append(flatten(poly))
 
-    print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={scores[0]:.2f}\nbbox={bbox}')
+    print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={scores[0]:.2f}\nbbox={bboxes[0]}')
 
     res = GeocodeResults(display_name= text,
-                         confidance = scores,
-                         boundingbox = bbox,
+                         confidence = scores,
+                         boundingboxes = bboxes,
                          levels_polygons = levels_polygons)
     return [res]
 
