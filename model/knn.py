@@ -10,15 +10,21 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class SearchEngine(object):
 
     def __init__(self, dataset_path, model_checkpoint):
-        print(f'load dataset from {dataset_path}')
-        self.ds = datasets.load_from_disk(dataset_path=dataset_path)
 
         print(f'load model from {model_checkpoint}')
         self.tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
         self.model = AutoModel.from_pretrained(model_checkpoint)
         self.model.to(device)
 
-        print(f'calculates embeddings for the dataset')
+        print(f'load dataset from {dataset_path}')
+        dataset = datasets.load_from_disk(dataset_path=dataset_path)
+
+        print(f'calculates embeddings')
+        self.embeddings_dataset = dataset.map(
+            lambda x: {"embeddings": SearchEngine.get_embeddings(x["text"]).detach().cpu().numpy()[0]}
+        )
+        print(f'apply faiss index')
+        self.embeddings_dataset.add_faiss_index(column="embeddings")
 
     @staticmethod
     def cls_pooling(model_output):
@@ -41,9 +47,11 @@ class SearchEngine(object):
 
     def search(self, query: str, k=5):
         print(f'calculate embeddings for query text')
-
+        query_embedding = SearchEngine.get_embeddings([query]).cpu().detach().numpy()
         print(f'get {k} nearest samples from dataset')
-
+        scores, samples = self.embeddings_dataset.get_nearest_examples("embeddings", query_embedding, k=k)
+        print([f'{sample} {scores[i]}' for i, sample in enumerate(samples)])
+        return scores, samples
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
