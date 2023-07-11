@@ -17,7 +17,7 @@ class SearchEngine(object):
         self.model.to(device)
 
         print(f'load dataset from {dataset_path}')
-        dataset = load_dataset('csv', data_files=dataset_path)
+        dataset = load_dataset('csv', data_files=dataset_path)['train']
 
         print(f'calculates embeddings')
         self.embeddings_dataset = dataset.map(
@@ -47,7 +47,7 @@ class SearchEngine(object):
 
     def search(self, query: str, k=5):
         print(f'calculate embeddings for query text')
-        query_embedding = SearchEngine.get_embeddings([query]).cpu().detach().numpy()
+        query_embedding = self.get_embeddings(text=[query]).cpu().detach().numpy()
         print(f'get {k} nearest samples from dataset')
         scores, samples = self.embeddings_dataset.get_nearest_examples("embeddings", query_embedding, k=k)
         print([f'{sample} {scores[i]}' for i, sample in enumerate(samples)])
