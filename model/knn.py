@@ -1,6 +1,6 @@
 import sys
 import torch
-from datasets import load_dataset
+import datasets
 
 from transformers import AutoTokenizer, AutoModel
 
@@ -10,18 +10,17 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class SearchEngine(object):
 
     def __init__(self, dataset_path, model_checkpoint):
-
         print(f'load model from {model_checkpoint}')
         self.tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
         self.model = AutoModel.from_pretrained(model_checkpoint)
         self.model.to(device)
 
-        print(f'load dataset from {dataset_path}')
-        dataset = load_dataset('csv', data_files=dataset_path)['train']
+        print(f'load dataset from: {dataset_path}')
+        dataset = datasets.load_from_disk(dataset_path=dataset_path)['train'].select(range(100000))
 
         print(f'calculates embeddings')
         self.embeddings_dataset = dataset.map(
-            lambda x: {"embeddings": self.get_embeddings(x["input"]).detach().cpu().numpy()[0]}
+            lambda x: {"embeddings": self.get_embeddings(x["english_desc"]).detach().cpu().numpy()[0]}
         )
         print(f'apply faiss index')
         self.embeddings_dataset.add_faiss_index(column="embeddings")
@@ -53,6 +52,7 @@ class SearchEngine(object):
         print([f'{sample} {scores[i]}' for i, sample in enumerate(samples)])
         return scores, samples
 
+
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print(f'usage: python {sys.argv[0]} <dataset path> <model checkpoint>')
@@ -62,8 +62,9 @@ if __name__ == '__main__':
     search_engine = SearchEngine(dataset_path=dataset_path, model_checkpoint=model_checkpoint)
 
     while True:
-        query = input('type search query:')
+        query = input('type search query (or exit for quit):')
+        if query.lower() == 'exit':
+            print('bye bye...')
+            break
         res = search_engine.search(query, k=5)
         print(f'{query} : {res}')
-
-    search_engine.search()
