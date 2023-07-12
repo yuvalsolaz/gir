@@ -49,7 +49,8 @@ class SearchEngine(object):
         query_embedding = self.get_embeddings(text=[query]).cpu().detach().numpy()
         print(f'get {k} nearest samples from dataset')
         scores, samples = self.embeddings_dataset.get_nearest_examples("embeddings", query_embedding, k=k)
-        print([f'{sample} {scores[i]}' for i, sample in enumerate(samples)])
+        results = [f'{sample} {scores[i]}' for i, sample in enumerate(samples["english_desc"])]
+        print('\n'.join(results))
         return scores, samples
 
 
@@ -66,5 +67,4 @@ if __name__ == '__main__':
         if query.lower() == 'exit':
             print('bye bye...')
             break
-        res = search_engine.search(query, k=5)
-        print(f'{query} : {res}')
+        scores, samples = search_engine.search(query, k=5)
