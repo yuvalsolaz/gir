@@ -1,4 +1,6 @@
 import sys
+
+import faiss
 import torch
 import datasets
 
@@ -9,21 +11,21 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class SearchEngine(object):
 
-    def __init__(self, dataset_path, model_checkpoint):
-        print(f'load model from {model_checkpoint}')
-        self.tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-        self.model = AutoModel.from_pretrained(model_checkpoint)
+    def __init__(self, dataset_path, similarity_model, index_column="embeddings", metric_type=faiss.METRIC_INNER_PRODUCT):
+        print(f'load model from {similarity_model}')
+        self.tokenizer = AutoTokenizer.from_pretrained(similarity_model)
+        self.model = AutoModel.from_pretrained(similarity_model)
         self.model.to(device)
 
         print(f'load dataset from: {dataset_path}')
-        dataset = datasets.load_from_disk(dataset_path=dataset_path)['train'].select(range(100000))
+        dataset = datasets.load_from_disk(dataset_path=dataset_path)['train'].select(range(10000))
 
         print(f'calculates embeddings')
         self.embeddings_dataset = dataset.map(
             lambda x: {"embeddings": self.get_embeddings(x["english_desc"]).detach().cpu().numpy()[0]}
         )
-        print(f'apply faiss index')
-        self.embeddings_dataset.add_faiss_index(column="embeddings")
+        print(f'add faiss index: {index_column} metric type: {metric_type}')
+        self.embeddings_dataset.add_faiss_index(index_name=index_column, column=index_column, metric_type=metric_type)
 
     @staticmethod
     def cls_pooling(model_output):
@@ -42,16 +44,21 @@ class SearchEngine(object):
         )
         encoded_input = {k: v.to(device) for k, v in encoded_input.items()}
         model_output = self.model(**encoded_input)
-        return SearchEngine.cls_pooling(model_output)
+        cls_vector = SearchEngine.cls_pooling(model_output)
+        return torch.divide(cls_vector,cls_vector.norm())
 
     def search(self, query: str, k=5):
         print(f'calculate embeddings for query text')
         query_embedding = self.get_embeddings(text=[query]).cpu().detach().numpy()
         print(f'get {k} nearest samples from dataset')
         scores, samples = self.embeddings_dataset.get_nearest_examples("embeddings", query_embedding, k=k)
-        results = [f'{sample} {scores[i]}' for i, sample in enumerate(samples["english_desc"])]
+        results = ['{} {:.2f}'.format(sample, scores[i]) for i, sample in enumerate(samples["english_desc"])]
         print('\n'.join(results))
         return scores, samples
+
+    def inference(self, sentence: str):
+        scores, samples = self.search(query=sentence, k=5)
+        return samples['cell_id'][0], scores[0]
 
 
 if __name__ == '__main__':
@@ -60,7 +67,8 @@ if __name__ == '__main__':
         exit(1)
     dataset_path = sys.argv[1]
     model_checkpoint = sys.argv[2]
-    search_engine = SearchEngine(dataset_path=dataset_path, model_checkpoint=model_checkpoint)
+    search_engine = SearchEngine(dataset_path=dataset_path, similarity_model=model_checkpoint,
+                                 index_column='embeddings', metric_type=faiss.METRIC_INNER_PRODUCT)
 
     while True:
         query = input('type search query (or exit for quit):')
