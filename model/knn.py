@@ -18,7 +18,7 @@ class SearchEngine(object):
         self.model.to(device)
 
         print(f'load dataset from: {dataset_path}')
-        dataset = datasets.load_from_disk(dataset_path=dataset_path)['train'].select(range(10000))
+        dataset = datasets.load_from_disk(dataset_path=dataset_path)['train']# .select(range(10000))
 
         print(f'calculates embeddings')
         self.embeddings_dataset = dataset.map(
@@ -48,11 +48,11 @@ class SearchEngine(object):
         return torch.divide(cls_vector,cls_vector.norm())
 
     def search(self, query: str, k=5):
-        print(f'calculate embeddings for query text')
+        print(f'calculate embeddings for: {query}')
         query_embedding = self.get_embeddings(text=[query]).cpu().detach().numpy()
-        print(f'get {k} nearest samples from dataset')
+        print(f'get {k} dataset nearest samples for: {query}')
         scores, samples = self.embeddings_dataset.get_nearest_examples("embeddings", query_embedding, k=k)
-        results = ['{} {:.2f}'.format(sample, scores[i]) for i, sample in enumerate(samples["english_desc"])]
+        results = ['{} {:.2f}'.format(sample, scores[i]) for i, sample in enumerate(samples["english_label"])]
         print('\n'.join(results))
         return scores, samples
 
