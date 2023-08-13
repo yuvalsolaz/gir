@@ -70,7 +70,7 @@ def geocoding(text: str, knn=0):
 
 # similarity knn model
 dataset_path = r'../data/wiki/all_items_labels'
-similarity_model_chkpnt = 'sentence-transformers/multi-qa-mpnet-base-dot-v1'
+similarity_model_chkpnt = 'intfloat/multilingual-e5-large'
 
 search_engine = SearchEngine(dataset_path=dataset_path, similarity_model=similarity_model_chkpnt)
 
@@ -79,7 +79,7 @@ def geoknn(text: str, k=5):
 
     # search k nearest neighbers :
     scores, samples = search_engine.search(query=text, k=k)
-    cellid = samples['s2_sequence'][0]
+    cellid = samples['s2_sequence'][0].strip('\x00')
     rects, area = get_token_rects(cell_id_token=cellid)
     polygons, area = get_token_polygons(cell_id_token=cellid)
     if not rects:
@@ -106,7 +106,7 @@ def geoknn(text: str, k=5):
     print (f'geocoding: {text} cell={cellid} level={len(cellid)} area={area:.2f} score={scores[0]:.2f}\nbbox={bboxes[0]}')
 
     res = GeocodeResults(display_name= text,
-                         confidence = scores,
+                         confidence = list(scores),
                          boundingboxes = bboxes,
                          levels_polygons = levels_polygons)
     return [res]
