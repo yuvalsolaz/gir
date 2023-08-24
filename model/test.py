@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 import datasets
 from inference import load_model
+from knn import SearchEngine
 
 '''
 Pi predicted class for each test example i, and all of its ancestor classes (car, pickup, isuzu)    
@@ -46,7 +47,6 @@ def hirarchies_metric(y_true, y_pred):
     haccuracy = np.divide(sum(hA), sum(Ti))
     return haccuracy
 
-
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
@@ -58,24 +58,38 @@ if __name__ == '__main__':
 
     test = load_dataset_test(dataset_path=dataset_path, max_samples=max_samples, shuffle=True)
 
-    tokenizer, model = load_model(checkpoint=checkpoint)
+    # tokenizer, model = load_model(checkpoint=checkpoint)
+    #
+    # def inference(sentence):
+    #     input_ids = tokenizer(sentence, return_tensors="pt").input_ids
+    #     outputs = model.generate(input_ids,
+    #                              max_length=10,
+    #                              num_beams=10,
+    #                              length_penalty=0.0,
+    #                              output_scores=True,
+    #                              return_dict_in_generate=True
+    #                              )
+    #     end_of_sequence = '\x00'
+    #     return tokenizer.batch_decode(outputs['sequences'], skip_special_tokens=True)[0] + end_of_sequence
 
+    '''
+        for knn inference test
+    '''
+    similarity_model_chkpnt = 'intfloat/multilingual-e5-large'
+    search_engine = SearchEngine(dataset_path=dataset_path, similarity_model=similarity_model_chkpnt)
 
-    def inference(sentence):
-        input_ids = tokenizer(sentence, return_tensors="pt").input_ids
-        outputs = model.generate(input_ids,
-                                 max_length=10,
-                                 num_beams=10,
-                                 length_penalty=0.0,
-                                 output_scores=True,
-                                 return_dict_in_generate=True
-                                 )
-        end_of_sequence = '\x00'
-        return tokenizer.batch_decode(outputs['sequences'], skip_special_tokens=True)[0] + end_of_sequence
+    def inference_knn(input_sentence):
+        scores, samples = search_engine.search(query=input_sentence, k=1)
+        return samples['s2_sequence'][0].strip('\x00')
 
 
     print(f'evaluates {test.shape[0]} samples from {dataset_path}')
-    test = test.map(lambda x: {'inference': inference(x["english_desc"]) if x["english_desc"] is not None else ''})
+    inference_results = {}
+    for sentence in test[:]['english_desc']:
+        inference_results[sentence] = inference_knn(input_sentence=sentence)
+
+    test = test.map(lambda sample: {'inference': inference_results[sample["english_desc"]]})
+
     accuracy = accuracy_score(y_true=test['s2_sequence'], y_pred=test['inference'])
     h_accuracy = hirarchies_metric(y_true=test['s2_sequence'], y_pred=test['inference'])
     print(f'\n accuracy: {accuracy} \n hierarchy accuracy: {h_accuracy}')

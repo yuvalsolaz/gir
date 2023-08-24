@@ -22,7 +22,8 @@ class SearchEngine(object):
 
         print(f'calculates embeddings')
         self.embeddings_dataset = dataset.map(
-            lambda x: {"embeddings": self.get_embeddings(x["english_desc"]).detach().cpu().numpy()[0]}
+            lambda x: {"embeddings": self.get_embeddings(x["english_desc"]).detach().cpu().numpy()[0]},
+            batched=False
         )
         print(f'add faiss index: {index_column} metric type: {metric_type}')
         self.embeddings_dataset.add_faiss_index(index_name=index_column, column=index_column, metric_type=metric_type)
@@ -52,7 +53,7 @@ class SearchEngine(object):
         query_embedding = self.get_embeddings(text=[query]).cpu().detach().numpy()
         print(f'get {k} dataset nearest samples for: {query}')
         scores, samples = self.embeddings_dataset.get_nearest_examples("embeddings", query_embedding, k=k)
-        results = ['{} {:.2f}'.format(sample, scores[i]) for i, sample in enumerate(samples["english_label"])]
+        results = ['{} {:.2f}'.format(sample, scores[i]) for i, sample in enumerate(samples["english_desc"])]
         print('\n'.join(results))
         return scores, samples
 
