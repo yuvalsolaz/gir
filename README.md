@@ -18,6 +18,10 @@ https://arxiv.org/pdf/2207.04873.pdf
 11. metrics geographic distance or IOU
 12. replace t5-small to base/large pretrained model after tunings
 13. load gt labels as strings
+14. run test on: 
+Dataset and Evaluation Framework for Complex Geographical Description Parsing
+https://aclanthology.org/2020.coling-main.81.pdf
+
 
 ,return_dict_in_generate=True
 
